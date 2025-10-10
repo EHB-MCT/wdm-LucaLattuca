@@ -1,13 +1,22 @@
 #Conventions
+
+There is no single convention for React Native, therefore all refer to conventions in this file. 
+
+
 0) Basic rules :
 - alsways use const or let to define variable
 - Only Functional components
 - No nested components : seperate
 
 1) Naming conventions : 
- - Folders : camelCase
- - Components : PascalCase
- - Constants : UPPER_SNAKE_CASE
+this code uses the Airbnb convention 
+ - Folders :                camelCase 
+ - Variables /functions :   camelCase 
+ - Components :             PascalCase 
+ - Constants :              UPPER_SNAKE_CASE 
+ - Booleans :               starts with "is", "has", "should"
+
+
 
  2) Imports in order
     a. React import
@@ -67,4 +76,5 @@
 - https://medium.com/@mahesh.nagpure.mailbox/react-native-coding-standard-structure-ab5c5f9e6784 
 - https://gilshaan.medium.com/react-native-coding-standards-and-best-practices-5b4b5c9f4076
 - https://chatgpt.com/c/68e902f0-d04c-8330-8558-5bc77c20e599
+- https://airbnb.io/javascript/react/#alignment
 
