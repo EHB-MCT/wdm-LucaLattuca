@@ -6,12 +6,7 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <Text style={styles.textStyle}>Edit app/index.tsx to edit this screen.</Text>
-      <Link href={"/profile"} style={styles.button}>
-        <Image
-          source={require("../assets/images/icon.png")}
-          style={styles.profileImage}
-        ></Image>
-      </Link>
+      
     </View>
   );
 }
