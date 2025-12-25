@@ -1,12 +1,16 @@
 import { Text, View, StyleSheet } from "react-native";
-import { Link } from "expo-router";
-import { Image } from "react-native";
+
+// Components
+import History from "@/components/history/history";
+import GameButton from "@/components/game/gameButton";
 
 export default function Index() {
+  const balance = 21034;
   return (
     <View style={styles.container}>
-      <Text style={styles.textStyle}>Edit app/index.tsx to edit this screen.</Text>
-      
+      <Text style={styles.textStyle}>${balance}</Text>
+      <History />
+      <GameButton />
     </View>
   );
 }
@@ -21,6 +25,9 @@ const styles = StyleSheet.create({
   },
   textStyle: {
     color:'white',
+    fontSize: 30,
+    fontWeight: "bold",
+    marginBottom: 40,
   },
   button: {
     fontSize: 20,
