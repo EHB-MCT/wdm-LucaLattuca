@@ -31,7 +31,7 @@ export default function ProfileScreen() {
       </View>
       
       <Stats/>
-      <History />
+      <History scrollEnabled={false} />
     </ScrollView>
   );
 }

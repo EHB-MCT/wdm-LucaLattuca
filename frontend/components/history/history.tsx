@@ -1,8 +1,14 @@
 
-import { Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet, View, ViewStyle } from "react-native";
 import { FlatList } from "react-native";
 
-export default function History() {
+// dynamic comoponent styling props 
+type HistoryScroll = {
+    scrollEnabled?: boolean,
+    containerStyle?: ViewStyle;
+};
+
+export default function History({scrollEnabled = true, containerStyle}: HistoryScroll) {
 
     const matches = [
         { id: 1, opponent: "Player A", result: "Win" },
@@ -11,10 +17,11 @@ export default function History() {
     ];
 
     return (
-        <View style={styles.history}>
+        <View style={[styles.history, containerStyle]}>
             <Text style={styles.textStyle}>History</Text>
             <FlatList
                 data={matches}
+                scrollEnabled={scrollEnabled}
                 style={{ width: '100%' }}
                 keyExtractor={(match) => match.id.toString()}
                 renderItem={({ item }) => (
@@ -22,8 +29,8 @@ export default function History() {
                     <Text>{item.opponent} - {item.result}</Text>
                   </View>
                 )}
-      contentContainerStyle={styles.matchList}
-    />
+            contentContainerStyle={styles.matchList}
+        />
         </View>
 
     )
@@ -38,7 +45,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         alignItems: "center",
         width: '90%',
-        height: '40%',
+        // height: '40%',
         borderRadius: 10,
     },
     matchList: {

@@ -8,8 +8,11 @@ export default function Index() {
   const balance = 21034;
   return (
     <View style={styles.container}>
-      <Text style={styles.textStyle}>${balance}</Text>
-      <History />
+      <View>
+        <Text style={styles.balance}>Balance</Text>
+        <Text style={styles.balance}>${balance}</Text>
+      </View>
+      <History containerStyle={{ height: "40%" }} />
       <GameButton />
     </View>
   );
@@ -20,27 +23,12 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'black',
     flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
+    alignItems: "center",
+    justifyContent: "space-around",
   },
-  textStyle: {
+  balance: {
     color:'white',
     fontSize: 30,
     fontWeight: "bold",
-    marginBottom: 40,
-  },
-  button: {
-    fontSize: 20,
-    textDecorationLine: "underline",
-    color: "#fff",
-    position: "absolute",
-    top:10,
-    right:10
-
-  },
-  profileImage: {
-    width:60,
-    height:60,
-    borderRadius: 100,
   }
 })

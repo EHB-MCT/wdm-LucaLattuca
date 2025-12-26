@@ -27,56 +27,77 @@ export default function Stats()  {
 
     return (
         <View style={styles.stats}>
-            <View style={styles.info}>
-                <Text style={styles.header}>Info</Text>
+               <View style={styles.info}>
 
-                <View style={styles.row}>
-                    <Text style={styles.label}>Username:</Text>
-                    <Text style={styles.value}>{user.playerInfo.username}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Age:</Text>
-                    <Text style={styles.value}>{user.playerInfo.age}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Gender:</Text>
-                    <Text style={styles.value}>{user.playerInfo.gender}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Nationality:</Text>
-                    <Text style={styles.value}>{user.playerInfo.nationality}</Text>
-                </View>
-            </View>
+                     <Text style={styles.header}>Info</Text>
+                     <View>
 
-            <View style={styles.trustProfile}>
-                <Text style={styles.header}>Trust Profile</Text>
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Username</Text>
+                            <Text style={styles.value}>{user.playerInfo.username}</Text>
+                        </View>
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Age</Text>
+                            <Text style={styles.value}>{user.playerInfo.age}</Text>
+                        </View>
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Gender</Text>
+                            <Text style={styles.value}>{user.playerInfo.gender}</Text>
+                        </View>
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Nationality</Text>
+                            <Text style={styles.value}>{user.playerInfo.nationality}</Text>
+                        </View>
+                        
+                     </View>
 
-                <View style={styles.trustScore}>
-                    <Text style={styles.label}>Trust Score</Text>
-                    <Text style={styles.value}>{user.trustProfile.trustScore}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Openness</Text>
-                    <Text style={styles.value}>{user.trustProfile.oceanModel.openness}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Conscientiousness</Text>
-                    <Text style={styles.value}>{user.trustProfile.oceanModel.conscientiousness}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Extraversion</Text>
-                    <Text style={styles.value}>{user.trustProfile.oceanModel.extraversion}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Agreeableness</Text>
-                    <Text style={styles.value}>{user.trustProfile.oceanModel.agreeableness}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.label}>Neuroticism</Text>
-                    <Text style={styles.value}>{user.trustProfile.oceanModel.neuroticism}</Text>
-                </View>
-            </View>
-        </View>
+                     <Text style={styles.header}>Trust Profile</Text>
+
+                     <View>
+                        <View style={[styles.row, styles.trustScore]}>
+                            <Text style={styles.label}>Trust Score</Text>
+                            <Text style={styles.value}>{user.trustProfile.trustScore}</Text>
+                        </View>
+
+                        
+                        <View>
+
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Openness</Text>
+                                <Text style={styles.value}>{user.trustProfile.oceanModel.openness}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Conscientiousness</Text>
+                                <Text style={styles.value}>{user.trustProfile.oceanModel.conscientiousness}</Text>  
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Extraversion</Text>
+                                <Text style={styles.value}>{user.trustProfile.oceanModel.extraversion}</Text>   
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Agreeableness</Text>
+                                <Text style={styles.value}>{user.trustProfile.oceanModel.agreeableness}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Neuroticism</Text>
+                                <Text style={styles.value}>{user.trustProfile.oceanModel.neuroticism}</Text>  
+                            </View>
+
+
+                        </View>
+
+                     </View>
+               </View>
+               <View style={styles.graphs}>
+                    <View style={styles.trustScoreGraph}>
+
+                    </View>
+                    <View style={styles.oceanGraph}>
+
+                    </View>
+                    
+               </View>
+        </View>    
     )
 }
 const styles = StyleSheet.create({
@@ -87,34 +108,50 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     stats:{
-        borderWidth: 1,
+        
         backgroundColor: 'white',
         width: '90%',
         padding: 10,
         marginBottom: 20,
         borderRadius: 10,
+        display: 'flex',
+        flexDirection: 'row',
     },
-    info: {
-         
-    },
-    trustProfile:{
+    info:{
+        width: '50%',
+        flexDirection: 'column',
         
-        width: '60%',
     },
+    
     row:{
-        flexDirection: "row"
+        flexDirection: 'row',
+        marginBottom: 5,
     },
     label:{
-        fontSize: 17,
-        width: 170,
+        width: '90%',
     },
-    value: {
-        fontSize: 17
+    value:{
+
     },
-    trustScore: {
-        flexDirection: "row",
-        marginBottom: 10,
-    }
+    graphs:{
+        width: '50%',
+        
+        justifyContent: 'flex-end',
+    },
+    trustScore:{
+        marginBottom: 15,
+    },
+    trustScoreGraph:{
+        borderWidth: 1,
+        height: 30,
+        marginBottom: 5,
+    },
+    oceanGraph:{
+        alignSelf: 'center',
+        borderWidth: 1,
+        height: 110,
+        width:  110,
+    },
 })
 
 // Sources:
