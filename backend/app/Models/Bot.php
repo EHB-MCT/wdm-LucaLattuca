@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use PHPUnit\Event\Runtime\PHP;
 
 class Bot extends Model
 {
@@ -130,7 +131,7 @@ class Bot extends Model
         $investment *= $randomFactor;
 
         // Round to nearest 100
-        $investment = round($investment / 100) * 100;
+        $investment = round($investment / 100, 0 , PHP_ROUND_HALF_UP) * 100;
 
         return max($minInvestment, min($maxInvestment, $investment));
     }
@@ -150,7 +151,7 @@ class Bot extends Model
         $randomFactor = rand(70, 130) / 100;
         $decisionTime = $baseTime * $randomFactor;
 
-        return round($decisionTime, 2);
+        return round($decisionTime, 2, PHP_ROUND_HALF_DOWN);
     }
 
     /**
