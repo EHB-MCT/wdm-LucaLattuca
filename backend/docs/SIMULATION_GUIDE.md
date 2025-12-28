@@ -41,7 +41,7 @@ php artisan game:simulate --count=10
 
 ### Verbose Mode (See Detailed Output)
 ```bash
-php artisan game:simulate --count=1 --verbose
+php artisan game:simulate --count=1 --detailed
 ```
 
 ### With Statistics
@@ -51,7 +51,7 @@ php artisan game:simulate --count=50 --stats
 
 ### All Options Combined
 ```bash
-php artisan game:simulate --count=100 --verbose --stats --seed-bots
+php artisan game:simulate --count=100 --detailed --stats --seed-bots
 ```
 
 ## Running Tests
