@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="68e01bcd-025c-453d-ae04-f3c9b82207e8" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/backend/app/Models/Bot.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/Bot.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Services/GameSimulator.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Services/GameSimulator.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,7 +21,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "git-widget-placeholder": "feature/backend-models-migrations",
+    "git-widget-placeholder": "bugFix/simulate-games",
     "node.js.selected.package.tslint": "(autodetect)"
   }
 }]]></component>

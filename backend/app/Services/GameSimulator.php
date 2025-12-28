@@ -61,13 +61,24 @@ class GameSimulator
                 'bot_personality' => $bot2->getOceanTraits(),
             ]);
 
-            // Simulate 3 rounds
+            // Simulate 3 rounds (or until someone cashes out)
             for ($roundNum = 1; $roundNum <= 3; $roundNum++) {
                 if ($verbose) {
                     Log::info("--- Round {$roundNum} ---");
                 }
 
                 $this->simulateRound($game, $gamePlayer1, $gamePlayer2, $bot1, $bot2, $roundNum, $verbose);
+
+                // Check if someone cashed out - if so, end the game
+                $game->refresh();
+                $lastRound = $game->rounds()->latest('round_number')->first();
+
+                if ($lastRound && $lastRound->someone_cashed_out) {
+                    if ($verbose) {
+                        Log::info("Game ended early - someone cashed out!");
+                    }
+                    break; // Exit the round loop
+                }
             }
 
             // Finalize game
@@ -250,10 +261,14 @@ class GameSimulator
         $gp1 = $game->gamePlayers->where('player_number', 1)->first();
         $gp2 = $game->gamePlayers->where('player_number', 2)->first();
 
+        $endedEarly = $game->total_rounds < 3 ? " (ended after round {$game->total_rounds})" : "";
+
         Log::info(
-            "=== Game Complete ===\n" .
-            "{$bot1->name}: Invested \${$gp1->total_invested}, Earned \${$gp1->final_earnings}, Net: \${$gp1->net_result}\n" .
-            "{$bot2->name}: Invested \${$gp2->total_invested}, Earned \${$gp2->final_earnings}, Net: \${$gp2->net_result}\n" .
+            "=== Game Complete{$endedEarly} ===\n" .
+            "{$bot1->name}: Invested \${$gp1->total_invested}, Earned \${$gp1->final_earnings}, Net: \${$gp1->net_result}" .
+            ($gp1->was_betrayed ? " (BETRAYED)" : "") . "\n" .
+            "{$bot2->name}: Invested \${$gp2->total_invested}, Earned \${$gp2->final_earnings}, Net: \${$gp2->net_result}" .
+            ($gp2->was_betrayed ? " (BETRAYED)" : "") . "\n" .
             "===================="
         );
     }
@@ -284,11 +299,7 @@ class GameSimulator
             ->where('both_invested', true)
             ->count();
 
-        return (float) round(
-            ($cooperations / $totalRounds) * 100,
-            2,
-            PHP_ROUND_HALF_UP
-        );
+        return (float) round(($cooperations / $totalRounds) * 100, 2, PHP_ROUND_HALF_DOWN);
     }
 
     private function calculateBetrayalRate($games): float
@@ -300,11 +311,7 @@ class GameSimulator
             ->where('someone_cashed_out', true)
             ->count();
 
-        return (float) round(
-            ($betrayals / $totalRounds) * 100,
-            2,
-            PHP_ROUND_HALF_UP
-            );
+        return (float) round(($betrayals / $totalRounds) * 100, 2, PHP_ROUND_HALF_DOWN);
     }
 
     private function calculateAverageEarnings($games): float
@@ -313,10 +320,9 @@ class GameSimulator
         if ($gamePlayers->isEmpty()) return 0.0;
 
         $avgResult = $gamePlayers->avg('net_result');
-        return (float) round($avgResult ?? 0, 2, PHP_ROUND_HALF_UP);
+        return (float) round($avgResult ?? 0, 2, PHP_ROUND_HALF_DOWN);
     }
 }
-
 // sources
 // created using claude Code (Sonnet 4.5)
 // https://claude.ai/share/02e1bcfb-441b-4a92-b92e-565cd2c0d21f
