@@ -142,8 +142,8 @@ class GameService
             // Update game round counter
             $game->increment('total_rounds');
 
-            // Check if game is complete
-            if ($game->total_rounds >= 3) {
+            // Check if game should end (someone cashed out OR all 3 rounds complete)
+            if ($someoneCashedOut || $game->total_rounds >= 3) {
                 $this->finalizeGame($game);
             }
         });
@@ -353,7 +353,6 @@ class GameService
         $user->save();
     }
 }
-
 // sources
 // created using claude Code (Sonnet 4.5)
 // https://claude.ai/share/02e1bcfb-441b-4a92-b92e-565cd2c0d21f
