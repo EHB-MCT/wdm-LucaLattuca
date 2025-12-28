@@ -29,7 +29,7 @@ return [
     // Player settings
     'starting_balance' => env('GAME_STARTING_BALANCE', 1000.00),
     'minimum_investment' => 100.00,
-    'maximum_investment' => 5000.00,
+    'maximum_investment' => 10000.00,
 
     // Trust score settings
     'trust_score_increase_cooperation' => 5.0, // Points gained when both invest
