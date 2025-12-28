@@ -69,12 +69,31 @@ class Bot extends Model
         // Base cooperation probability on personality
         $cooperationProb = $this->cooperation_tendency;
 
-        // Adjust based on round number (higher stakes = more cautious)
-        if ($round->round_number === 3) {
+        // Strategic adjustments based on round number
+        if ($round->round_number === 1) {
+            // Round 1: Most bots cooperate to build the pot (unless very selfish)
+            $cooperationProb += 30; // Strong incentive to cooperate early
+
+        } elseif ($round->round_number === 2) {
+            // Round 2: Moderate cooperation, some defection starts
+            $cooperationProb += 10; // Small incentive to keep building pot
+
+            // Selfish bots with low cooperation might defect here for medium pot
+            if ($this->cooperation_tendency < 30 && rand(0, 100) < 40) {
+                $cooperationProb -= 50; // 40% chance to defect in round 2 if selfish
+            }
+
+        } else { // Round 3
+            // Round 3: High stakes, more likely to defect
             $cooperationProb -= 15; // Less likely to cooperate in final round
+
+            // Very selfish bots are much more likely to cash out in final round
+            if ($this->cooperation_tendency < 40) {
+                $cooperationProb -= 25; // Strong defection incentive for selfish bots
+            }
         }
 
-        // Adjust based on agreeableness
+        // Adjust based on agreeableness (nice bots cooperate more)
         $cooperationProb += ($this->agreeableness - 50) * 0.3;
 
         // Adjust based on neuroticism (anxious bots are less trusting)
@@ -94,7 +113,7 @@ class Bot extends Model
         $decisionTime = $this->simulateDecisionTiming();
 
         // Simulate hesitation
-        $hesitationData = $this->simulateHesitation($willCooperate);
+        $hesitationData = $this->simulateHesitation($willCooperate, $round->round_number);
 
         return [
             'choice' => $choice,
@@ -115,23 +134,24 @@ class Bot extends Model
         // Base investment on risk tolerance
         $riskFactor = $this->risk_tolerance / 100;
 
-        // Conservative bots invest less in early rounds
+        // Investment strategy based on round number
         if ($round->round_number === 1) {
-            $riskFactor *= 0.5;
+            // Round 1: Start conservative (20-40% of max investment range)
+            $riskFactor *= rand(20, 40) / 100;
         } elseif ($round->round_number === 2) {
-            $riskFactor *= 0.75;
+            // Round 2: Increase investment (40-70% of max investment range)
+            $riskFactor *= rand(40, 70) / 100;
+        } else {
+            // Round 3: Highest stakes (60-100% based on risk tolerance)
+            $riskFactor *= rand(60, 100) / 100;
         }
 
         // Calculate investment
         $range = $maxInvestment - $minInvestment;
         $investment = $minInvestment + ($range * $riskFactor);
 
-        // Add some randomness (±20%)
-        $randomFactor = rand(80, 120) / 100;
-        $investment *= $randomFactor;
-
         // Round to nearest 100
-        $investment = round($investment / 100, 0 , PHP_ROUND_HALF_UP) * 100;
+        $investment = (float) round($investment / 100,0, PHP_ROUND_HALF_UP) * 100;
 
         return max($minInvestment, min($maxInvestment, $investment));
     }
@@ -151,20 +171,25 @@ class Bot extends Model
         $randomFactor = rand(70, 130) / 100;
         $decisionTime = $baseTime * $randomFactor;
 
-        return round($decisionTime, 2, PHP_ROUND_HALF_DOWN);
+        return (float) round($decisionTime, 2, PHP_ROUND_HALF_DOWN);
     }
 
     /**
      * Simulate hesitation behavior.
      */
-    private function simulateHesitation(bool $willCooperate): array
+    private function simulateHesitation(bool $willCooperate, int $roundNumber): array
     {
         // Neurotic bots hesitate more
         $hesitationScore = $this->neuroticism;
 
-        // Add more hesitation if making risky choice
+        // Add more hesitation if making risky choice (cashing out)
         if (!$willCooperate) {
             $hesitationScore += 20;
+        }
+
+        // More hesitation in final round (high stakes)
+        if ($roundNumber === 3) {
+            $hesitationScore += 15;
         }
 
         // Clamp
@@ -186,3 +211,7 @@ class Bot extends Model
         ];
     }
 }
+
+// sources
+// created using claude Code (Sonnet 4.5)
+// https://claude.ai/share/02e1bcfb-441b-4a92-b92e-565cd2c0d21f
