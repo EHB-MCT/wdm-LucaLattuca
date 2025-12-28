@@ -5,8 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="efe73d3f-5b41-4d10-8d49-70278e8b6acb" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/config/game.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_12_28_004020_create_game_players_table.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/migrations/2025_12_28_004020_create_game_players_table.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_12_28_022933_create_rounds_table.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/migrations/2025_12_28_022933_create_rounds_table.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_12_28_024201_create_round_stats_table.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/migrations/2025_12_28_024201_create_round_stats_table.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -193,7 +195,7 @@
       <updated>1766875883262</updated>
       <workItem from="1766875885097" duration="4582000" />
       <workItem from="1766881106528" duration="1363000" />
-      <workItem from="1766882494545" duration="2159000" />
+      <workItem from="1766882494545" duration="2728000" />
     </task>
     <servers />
   </component>

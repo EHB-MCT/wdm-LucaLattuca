@@ -42,3 +42,8 @@ return new class extends Migration
         Schema::dropIfExists('game_players');
     }
 };
+
+// sources
+// created using claude Code (Sonnet 4.5)
+// https://claude.ai/share/02e1bcfb-441b-4a92-b92e-565cd2c0d21f
+
