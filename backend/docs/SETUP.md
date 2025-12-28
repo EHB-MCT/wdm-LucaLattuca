@@ -56,7 +56,7 @@ php artisan tinker
 
 ### Quick Test
 ```bash
-php artisan game:simulate --verbose
+php artisan game:simulate --detailed
 ```
 
 ### Run Multiple Games
@@ -79,7 +79,7 @@ php artisan migrate:fresh --seed
 php artisan db:seed --class=BotSeeder
 
 # Simulate 1 game with details
-php artisan game:simulate --verbose
+php artisan game:simulate --detailed
 
 # Simulate 100 games and show stats
 php artisan game:simulate --count=100 --stats
@@ -121,8 +121,6 @@ Once setup is complete, see `SIMULATION_GUIDE.md` for:
 - How to create custom bot personalities
 - Advanced testing strategies
 
-
 [//]: # (// sources)
 [//]: # (// documentation created using claude Code (Sonnet 4.5)
 [//]: # (// https://claude.ai/share/02e1bcfb-441b-4a92-b92e-565cd2c0d21f)
-
