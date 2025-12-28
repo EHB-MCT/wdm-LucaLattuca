@@ -38,6 +38,7 @@ class User extends Authenticatable
         'times_defected',
         'times_betrayed',
         'average_earnings',
+        'onboarding_completed',
     ];
 
     /**
@@ -75,6 +76,7 @@ class User extends Authenticatable
             'times_defected' => 'integer',
             'times_betrayed' => 'integer',
             'average_earnings' => 'decimal:2',
+            'onboarding_completed' => 'boolean',
         ];
     }
 }
