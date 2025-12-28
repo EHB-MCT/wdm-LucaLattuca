@@ -14,7 +14,7 @@ class SimulateGames extends Command
      */
     protected $signature = 'game:simulate
                             {--count=1 : Number of games to simulate}
-                            {--verbose : Show detailed output}
+                            {--detailed : Show detailed game output}
                             {--seed-bots : Seed bot personalities first}
                             {--stats : Show statistics after simulation}';
 
@@ -43,7 +43,7 @@ class SimulateGames extends Command
 
         // Get simulation parameters
         $count = (int) $this->option('count');
-        $verbose = $this->option('verbose');
+        $detailed = $this->option('detailed');
 
         // Confirm simulation
         if ($count > 20 && !$this->confirm("You're about to simulate {$count} games. Continue?")) {
@@ -61,7 +61,7 @@ class SimulateGames extends Command
         $results = [];
         for ($i = 0; $i < $count; $i++) {
             try {
-                $game = $simulator->simulateGame(null, null, $verbose);
+                $game = $simulator->simulateGame(null, null, $detailed);
                 $results[] = ['status' => 'success', 'game_id' => $game->id];
             } catch (\Exception $e) {
                 $results[] = ['status' => 'failed', 'error' => $e->getMessage()];
@@ -106,7 +106,7 @@ class SimulateGames extends Command
         }
 
         $this->newLine();
-        $this->info('💡 Tip: Use --verbose to see detailed game flow');
+        $this->info('💡 Tip: Use --detailed to see detailed game flow');
         $this->info('💡 Tip: Use --stats to see statistics after simulation');
 
         return 0;
