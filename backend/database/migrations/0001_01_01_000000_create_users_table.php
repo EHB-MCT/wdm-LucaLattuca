@@ -13,10 +13,31 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('username')->unique();
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->decimal('balance', 10, 2)->default(1000.00); // Starting balance
+            $table->string('avatar')->nullable();
+            $table->integer('age')->nullable();
+            $table->string('gender')->nullable();
+            $table->string('nationality')->nullable();
+            $table->decimal('trust_score', 5, 2)->default(50.00); // 0-100 scale
+
+            // OCEAN Model (0-100 scale for each)
+            $table->decimal('openness', 5, 2)->default(50.00);
+            $table->decimal('conscientiousness', 5, 2)->default(50.00);
+            $table->decimal('extraversion', 5, 2)->default(50.00);
+            $table->decimal('agreeableness', 5, 2)->default(50.00);
+            $table->decimal('neuroticism', 5, 2)->default(50.00);
+
+            // Game Statistics
+            $table->integer('total_matches_played')->default(0);
+            $table->integer('times_cooperated')->default(0);
+            $table->integer('times_defected')->default(0);
+            $table->integer('times_betrayed')->default(0);
+            $table->decimal('average_earnings', 10, 2)->default(0.00);
+
+            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
