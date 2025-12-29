@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 
-const API_URL = 'http://your-laravel-api-url.com/api'; // Update this with your actual API URL
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
