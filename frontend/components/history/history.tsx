@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
         color: 'black',
     },
     history: {
-        backgroundColor: 'white',
+        backgroundColor: 'black',
         alignItems: "center",
         width: '90%',
         // height: '40%',
@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 10,
         alignItems: "center",
+        backgroundColor:"white"
     }
 })
 

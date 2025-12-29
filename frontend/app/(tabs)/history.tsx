@@ -1,10 +1,10 @@
 import { Text, View, StyleSheet } from "react-native";
+import History from "@/components/history/history";
 
-
-export default function AboutScreen() {
+export default function HistoryScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.textStyle}>About</Text>
+      <History scrollEnabled={true} />
     </View>
   );
 }
@@ -14,10 +14,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'black',
     flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-  },
-  textStyle: {
-    color:'white',
+    alignItems: "center",
+    paddingTop:30,
+    
   }
 })
