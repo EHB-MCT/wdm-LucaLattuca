@@ -8,7 +8,7 @@ export default function TabsLayout() {
         headerTintColor: 'white',
         headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         tabBarStyle: { backgroundColor: 'white' },
-        tabBarActiveTintColor: 'white',
+        tabBarActiveTintColor: 'black',
     }}>
       <Tabs.Screen name="index"
         options={{
@@ -16,7 +16,7 @@ export default function TabsLayout() {
           title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Image
-                source={require("../../assets/images/home-tab-icon.svg")}
+                source={require("../../assets/images/tab-icons/home-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}    
             ></Image>
           ),
@@ -39,7 +39,7 @@ export default function TabsLayout() {
           title: "History",
           tabBarIcon: ({ color, size }) => (
             <Image
-                source={require("../../assets/images/history-tab-icon.svg")}
+                source={require("../../assets/images/tab-icons/history-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}
             ></Image>
             ),
@@ -51,7 +51,7 @@ export default function TabsLayout() {
           title: "Rewards",
           tabBarIcon: ({ color, size }) => (
             <Image
-                source={require("../../assets/images/rewards-tab-icon.svg")}
+                source={require("../../assets/images/tab-icons/rewards-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}
             ></Image>
             ),
@@ -63,7 +63,7 @@ export default function TabsLayout() {
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
             <Image
-                source={require("../../assets/images/profile-tab-icon.svg")}
+                source={require("../../assets/images/tab-icons/profile-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}
             ></Image>
             ),
