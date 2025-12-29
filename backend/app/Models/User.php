@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -37,6 +38,7 @@ class User extends Authenticatable
         'times_defected',
         'times_betrayed',
         'average_earnings',
+        'onboarding_completed',
     ];
 
     /**
@@ -74,6 +76,7 @@ class User extends Authenticatable
             'times_defected' => 'integer',
             'times_betrayed' => 'integer',
             'average_earnings' => 'decimal:2',
+            'onboarding_completed' => 'boolean',
         ];
     }
 }
