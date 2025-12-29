@@ -13,7 +13,7 @@ export default function ProfileScreen() {
       nationality: "BEL",
       balance: 1500,
       playerType: "Reliable Player",
-      avatar: "../assets/images/icon.png",
+      avatar: "../../assets/images/icon.png",
     }
 
   return (
@@ -22,7 +22,7 @@ export default function ProfileScreen() {
 
         <Text style={styles.username}>{user.username}</Text>
         <Image
-            source={require("../assets/images/icon.png")}
+            source={require("../../assets/images/icon.png")}
             style={styles.avatar}    
         ></Image>
         <Text style={styles.playerType}>{user.playerType}</Text>

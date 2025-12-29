@@ -1,10 +1,10 @@
 import { Text, View, StyleSheet } from "react-native";
 
 
-export default function AboutScreen() {
+export default function HistoryScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.textStyle}>About</Text>
+      <Text style={styles.textStyle}>History</Text>
     </View>
   );
 }
