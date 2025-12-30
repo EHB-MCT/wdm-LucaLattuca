@@ -27,6 +27,7 @@ class GamePlayer extends Model
         'user_id',
         'player_number',
         'is_bot',
+        'bot_id',
         'bot_personality',
         'total_invested',
         'final_earnings',
@@ -68,6 +69,14 @@ class GamePlayer extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the bot (if this is a bot player).
+     */
+    public function bot(): BelongsTo
+    {
+        return $this->belongsTo(Bot::class);
     }
 
     /**
