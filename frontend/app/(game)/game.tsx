@@ -3,39 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Activi
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/contexts/UserContext';
+import type { GameState, RoundState, PlayerState, OpponentState, GameApiResponse } from '@/types/game';
+
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface GameState {
-  id: number;
-  status: string;
-  currentRound: number;
-  totalRounds: number;
-}
-
-interface RoundState {
-  id: number;
-  round_number: number;
-  pot_before_bonus: number;
-  pot_after_bonus: number;
-  trust_bonus_percentage: number;
-  time_remaining: number;
-}
-
-interface PlayerState {
-  id: number;
-  player_number: number;
-  total_invested: number;
-  final_earnings: number;
-  net_result: number;
-}
-
-interface OpponentState {
-  name: string;
-  is_bot: boolean;
-  balance: number;
-  trust_score: number;
-}
 
 export default function GameScreen() {
   const params = useLocalSearchParams();
