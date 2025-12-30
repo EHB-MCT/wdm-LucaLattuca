@@ -124,77 +124,54 @@ class GameController extends Controller
             ->orderBy('round_number', 'desc')
                 ->first();
         
-            // Get opponent
+                    // Get opponent
             $opponentGamePlayer = $game->gamePlayers->where('id', '!=', $userGamePlayer->id)->first();
-        
-        // Build opponent data
-        $opponentData = [];
-        if ($opponentGamePlayer->is_bot) {
-            // Get bot information
-            $bot = Bot::where('id', function($query) use ($opponentGamePlayer) {
-                // Match bot by personality traits stored in bot_personality JSON
-                $personality = $opponentGamePlayer->bot_personality;
-                if ($personality) {
-                    $query->select('id')
-                        ->from('bots')
-                        ->where('agreeableness', $personality['agreeableness'] ?? 0)
-                        ->where('cooperation_tendency', $personality['cooperation_tendency'] ?? 0)
-                        ->limit(1);
-                }
-            })->first();
-            
-            // If we can't find exact bot, get from bot_personality data
-            if (!$bot && $opponentGamePlayer->bot_personality) {
-                $opponentData = [
-                    'name' => 'Bot Player',
-                    'is_bot' => true,
-                    'balance' => config('game.bot_default_balance', 10000),
-                    'trust_score' => $this->calculateTrustScoreFromPersonality($opponentGamePlayer->bot_personality),
-                ];
-            } else if ($bot) {
+
+            // Build opponent data
+            if ($opponentGamePlayer->is_bot && $opponentGamePlayer->bot_id) {
+                $bot = Bot::find($opponentGamePlayer->bot_id);
                 $opponentData = [
                     'name' => $bot->name,
                     'is_bot' => true,
                     'balance' => config('game.bot_default_balance', 10000),
                     'trust_score' => $this->calculateBotTrustScore($bot),
                 ];
+            } else {
+                $opponentData = [
+                    'name' => $opponentGamePlayer->user->username ?? 'Unknown',
+            'is_bot' => false,
+            'balance' => $opponentGamePlayer->user->balance ?? 0,
+                    'trust_score' => $opponentGamePlayer->user->trust_score ?? 50,
+                ];
             }
-        } else {
-            $opponentData = [
-                'name' => $opponentGamePlayer->user->username,
-                'is_bot' => false,
-                'balance' => $opponentGamePlayer->user->balance,
-                'trust_score' => $opponentGamePlayer->user->trust_score,
-            ];
-        }
 
-        return response()->json([
-            'success' => true,
-            'game' => [
-                'id' => $game->id,
-                'status' => $game->status,
-                'total_rounds' => $game->total_rounds,
-                'started_at' => $game->started_at,
-            ],
-            'current_round' => $currentRound ? [
-                'id' => $currentRound->id,
-                'round_number' => $currentRound->round_number,
-                'pot_before_bonus' => $currentRound->pot_before_bonus,
-                'pot_after_bonus' => $currentRound->pot_after_bonus,
-                'trust_bonus_percentage' => $currentRound->trust_bonus_percentage,
-                'started_at' => $currentRound->started_at,
-                'time_remaining' => $this->calculateTimeRemaining($currentRound),
-            ] : null,
-                'player' => [
-                    'id' => $userGamePlayer->id,
-                    'player_number' => $userGamePlayer->player_number,
-                    'total_invested' => $userGamePlayer->total_invested,
-                    'final_earnings' => $userGamePlayer->final_earnings,
-                    'net_result' => $userGamePlayer->net_result,
+            return response()->json([
+                'success' => true,
+                'game' => [
+                    'id' => $game->id,
+                    'status' => $game->status,
+                    'total_rounds' => $game->total_rounds,
+                    'started_at' => $game->started_at,
                 ],
-                'opponent' => $opponentData,
-                'user_balance' => $user->balance,
-            ], 200);
+                'current_round' => $currentRound ? [
+                    'id' => $currentRound->id,
+                    'round_number' => $currentRound->round_number,
+                    'pot_before_bonus' => $currentRound->pot_before_bonus,
+                    'pot_after_bonus' => $currentRound->pot_after_bonus,
+                    'trust_bonus_percentage' => $currentRound->trust_bonus_percentage,
+                    'started_at' => $currentRound->started_at,
+                    'time_remaining' => $this->calculateTimeRemaining($currentRound),
+                ] : null,
+                    'player' => [
+                        'id' => $userGamePlayer->id,
+                        'player_number' => $userGamePlayer->player_number,
+                        'total_invested' => $userGamePlayer->total_invested,
+                        'final_earnings' => $userGamePlayer->final_earnings,
+                        'net_result' => $userGamePlayer->net_result,
+                    ],
+                    'opponent' => $opponentData,
+                    'user_balance' => $user->balance,
+                ], 200);
         
         } catch (\Exception $e) {
             Log::error('Get game state failed: ' . $e->getMessage());
