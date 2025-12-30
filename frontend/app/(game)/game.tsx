@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/contexts/UserContext';
@@ -39,8 +39,8 @@ interface OpponentState {
 
 export default function GameScreen() {
   const params = useLocalSearchParams();
-  const gameId = params.gameId;
   const { user } = useUser();
+  const gameId = params.gameId;
   
   // Game state
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -49,10 +49,12 @@ export default function GameScreen() {
   const [opponentState, setOpponentState] = useState<OpponentState | null>(null);
   
   // UI state
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(30);
   const [selectedChoice, setSelectedChoice] = useState<'invest' | 'cash_out' | null>(null);
   const [investmentAmount, setInvestmentAmount] = useState('100');
-  const [isLocked, setIsLocked] = useState(false);
+  const [displayPot, setDisplayPot] = useState(0); // Pot shown on screen (updated after rounds)
   
   // Tracking state
   const [choiceStartTime, setChoiceStartTime] = useState<number>(Date.now());
@@ -66,19 +68,30 @@ export default function GameScreen() {
 
   // Fetch game state on mount
   useEffect(() => {
-    fetchGameState();
-    startTimer();
+    if (gameId) {
+      fetchGameState();
+      startTimer();
+    } else {
+      setError('No game ID provided');
+      setIsLoading(false);
+    }
     
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
     };
-  }, []);
+  }, [gameId]);
 
   const fetchGameState = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       const token = await AsyncStorage.getItem('auth_token');
-      const response = await fetch(`${API_URL}/game/${params.gameId}`, {
+      
+      console.log('Fetching game state from:', `${API_URL}/game/${gameId}`);
+      
+      const response = await fetch(`${API_URL}/game/${gameId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -86,6 +99,8 @@ export default function GameScreen() {
       });
 
       const data = await response.json();
+      
+      console.log('Game state response:', data);
 
       if (response.ok && data.success) {
         setGameState(data.game);
@@ -93,9 +108,23 @@ export default function GameScreen() {
         setPlayerState(data.player);
         setOpponentState(data.opponent);
         setTimeRemaining(data.current_round.time_remaining);
+        
+        // Set pot to previous round's pot_after_bonus (or 0 for round 1)
+        if (data.current_round.round_number === 1) {
+          setDisplayPot(0);
+        } else {
+          setDisplayPot(data.current_round.pot_before_bonus);
+        }
+        
+        setIsLoading(false);
+      } else {
+        setError(data.message || 'Failed to load game');
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch game state:', error);
+    } catch (fetchError) {
+      console.error('Failed to fetch game state:', fetchError);
+      setError('Connection error. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -113,7 +142,7 @@ export default function GameScreen() {
 
   // Track time spent on each choice
   useEffect(() => {
-    if (selectedChoice && !isLocked) {
+    if (selectedChoice) {
       choiceTimerRef.current = setInterval(() => {
         if (selectedChoice === 'invest') {
           setTimeOnInvest(prev => prev + 0.1);
@@ -126,11 +155,9 @@ export default function GameScreen() {
     return () => {
       if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
     };
-  }, [selectedChoice, isLocked]);
+  }, [selectedChoice]);
 
   const handleChoiceToggle = (choice: 'invest' | 'cash_out') => {
-    if (isLocked) return;
-
     // Track initial choice
     if (!initialChoice) {
       setInitialChoice(choice);
@@ -145,27 +172,31 @@ export default function GameScreen() {
     setChoiceStartTime(Date.now());
   };
 
-  const handleLockChoice = async () => {
-    if (!selectedChoice) return;
+  const handleRoundEnd = async () => {
+    console.log('Round ended');
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
 
-    setIsLocked(true);
+    // Auto-lock the current choice (or default to invest if none selected)
+    const finalChoice = selectedChoice || 'invest';
+    const finalInvestment = finalChoice === 'invest' ? parseFloat(investmentAmount) : 100;
 
     const decisionData = {
-      choice: selectedChoice,
-      investment_amount: selectedChoice === 'invest' ? parseFloat(investmentAmount) : 100,
+      choice: finalChoice,
+      investment_amount: finalInvestment,
       decision_time: (Date.now() - choiceStartTime) / 1000,
       time_on_invest: timeOnInvest,
       time_on_cash_out: timeOnCashOut,
       number_of_toggles: numberOfToggles,
-      initial_choice: initialChoice,
+      initial_choice: initialChoice || finalChoice,
     };
 
-    console.log('Locking choice:', decisionData);
+    console.log('Auto-locking choice:', decisionData);
 
-    // TODO: Send to backend
+    // Submit choice to backend
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      await fetch(`${API_URL}/game/${params.gameId}/round/${roundState?.id}/choice`, {
+      await fetch(`${API_URL}/game/${gameId}/round/${roundState?.id}/choice`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,19 +208,14 @@ export default function GameScreen() {
     } catch (error) {
       console.error('Failed to submit choice:', error);
     }
-  };
-
-  const handleRoundEnd = () => {
-    console.log('Round ended');
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     
-    // TODO: Fetch round results and move to next round or end game
+    // Wait for results, then move to next round or end game
     setTimeout(() => {
       if (gameState && roundState && roundState.round_number < 3) {
         // Next round
         fetchGameState();
-        setIsLocked(false);
         setSelectedChoice(null);
+        setInvestmentAmount('100');
         setTimeRemaining(30);
         setTimeOnInvest(0);
         setTimeOnCashOut(0);
@@ -200,10 +226,31 @@ export default function GameScreen() {
         // Game ended
         router.push('/');
       }
-    }, 2000);
+    }, 3000); // 3 second delay to show results
   };
 
-  const pot = roundState?.pot_before_bonus || 0;
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="black" />
+        <Text style={{ marginTop: 20, fontSize: 16 }}>Loading game...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Text style={{ fontSize: 18, marginBottom: 20, textAlign: 'center' }}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.goBackButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.goBackButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -221,7 +268,7 @@ export default function GameScreen() {
           <Text style={styles.playerName}>{user?.username || 'You'}</Text>
           <View style={styles.playerStats}>
             <Text style={styles.statText}>🇧🇪 {user?.age || 25}</Text>
-            <Text style={styles.statText}>♂️</Text>
+            <Text style={styles.statText}>{user?.gender === 'male' ? '♂️' : user?.gender === 'female' ? '♀️' : '⚧'}</Text>
           </View>
         </View>
         <View style={styles.playerScores}>
@@ -230,62 +277,54 @@ export default function GameScreen() {
         </View>
       </View>
 
-      {/* Choice Buttons */}
-      <View style={styles.choiceSection}>
-        <TouchableOpacity
-          style={[
-            styles.choiceButton,
-            styles.investButton,
-            selectedChoice === 'invest' && styles.selectedButton
-          ]}
-          onPress={() => handleChoiceToggle('invest')}
-          disabled={isLocked}
-        >
-          <Text style={styles.choiceButtonText}>Invest</Text>
-        </TouchableOpacity>
+      {/* Center Section - Choice Buttons and Pot */}
+      <View style={styles.centerSection}>
+        {/* Left side - Choices */}
+        <View style={styles.choicesContainer}>
+          {/* Invest Button with Amount Input */}
+          <View style={styles.investRow}>
+            <TouchableOpacity
+              style={[
+                styles.choiceButton,
+                styles.investButton,
+                selectedChoice === 'invest' && styles.selectedButton
+              ]}
+              onPress={() => handleChoiceToggle('invest')}
+            >
+              <Text style={styles.choiceButtonText}>Invest</Text>
+            </TouchableOpacity>
 
-        {selectedChoice === 'invest' && (
-          <View style={styles.investmentInputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
-            <TextInput
-              style={styles.investmentInput}
-              value={investmentAmount}
-              onChangeText={setInvestmentAmount}
-              keyboardType="numeric"
-              editable={!isLocked}
-            />
+            <View style={styles.investmentInputContainer}>
+              <Text style={styles.dollarSign}>$</Text>
+              <TextInput
+                style={styles.investmentInput}
+                value={investmentAmount}
+                onChangeText={setInvestmentAmount}
+                keyboardType="numeric"
+              />
+            </View>
           </View>
-        )}
 
-        <TouchableOpacity
-          style={[
-            styles.choiceButton,
-            styles.cashOutButton,
-            selectedChoice === 'cash_out' && styles.selectedButton
-          ]}
-          onPress={() => handleChoiceToggle('cash_out')}
-          disabled={isLocked}
-        >
-          <Text style={styles.choiceButtonText}>Cash out</Text>
-        </TouchableOpacity>
-
-        {!isLocked && selectedChoice && (
-          <TouchableOpacity style={styles.lockButton} onPress={handleLockChoice}>
-            <Text style={styles.lockButtonText}>Lock Choice</Text>
+          {/* Cash Out Button */}
+          <TouchableOpacity
+            style={[
+              styles.choiceButton,
+              styles.cashOutButton,
+              selectedChoice === 'cash_out' && styles.selectedButton
+            ]}
+            onPress={() => handleChoiceToggle('cash_out')}
+          >
+            <Text style={styles.choiceButtonText}>Cash out</Text>
           </TouchableOpacity>
-        )}
+        </View>
 
-        {isLocked && (
-          <Text style={styles.lockedText}>Choice locked! Waiting for round to end...</Text>
-        )}
+        {/* Right side - Pot */}
+        <View style={styles.potContainer}>
+          <Text style={styles.potAmount}>${displayPot.toFixed(2)}</Text>
+        </View>
       </View>
 
-      {/* Pot Display */}
-      <View style={styles.potSection}>
-        <Text style={styles.potAmount}>${pot.toFixed(2)}</Text>
-      </View>
-
-      {/* Player 2 (Opponent) */}
+      {/* Player 2 (Opponent/Bot) */}
       <View style={styles.playerSection}>
         <View style={styles.avatar} />
         <View style={styles.playerInfo}>
@@ -297,8 +336,8 @@ export default function GameScreen() {
           </View>
         </View>
         <View style={styles.playerScores}>
-          <Text style={styles.balanceText}>${opponentState?.balance?.toLocaleString() || '0'}</Text>
           <Text style={styles.trustScoreText}>Trust score {opponentState?.trust_score || 56}</Text>
+          <Text style={styles.balanceText}>${opponentState?.balance?.toLocaleString() || '12,231'}</Text>
         </View>
       </View>
     </ScrollView>
@@ -318,6 +357,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 30,
+    marginTop: 20,
   },
   roundText: {
     fontSize: 18,
@@ -378,15 +418,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'black',
   },
-  choiceSection: {
-    marginVertical: 20,
+  centerSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginVertical: 30,
+  },
+  choicesContainer: {
+    flex: 1,
+    marginRight: 20,
+  },
+  investRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 10,
   },
   choiceButton: {
     padding: 15,
     borderRadius: 8,
-    marginBottom: 10,
     borderWidth: 2,
     borderColor: '#e0e0e0',
+    flex: 1,
   },
   investButton: {
     backgroundColor: '#e8f5e9',
@@ -399,7 +452,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
   },
   choiceButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     color: 'black',
@@ -407,55 +460,44 @@ const styles = StyleSheet.create({
   investmentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   dollarSign: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginRight: 5,
+    marginRight: 3,
     color: 'black',
   },
   investmentInput: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
     color: 'black',
-    minWidth: 100,
+    minWidth: 60,
+    padding: 0,
   },
-  lockButton: {
+  potContainer: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  potAmount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'black',
+  },
+  goBackButton: {
     backgroundColor: 'black',
     padding: 15,
     borderRadius: 8,
-    marginTop: 10,
   },
-  lockButtonText: {
+  goBackButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  lockedText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 10,
-    fontSize: 14,
-  },
-  potSection: {
-    alignItems: 'flex-end',
-    marginVertical: 20,
-  },
-  potAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'black',
-  },
 });
-
-
-// Sources
-// generated lobby screen using Claude (Sonnet 4.5)
-// https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
