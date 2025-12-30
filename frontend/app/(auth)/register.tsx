@@ -13,10 +13,13 @@ import {
   Alert,
 } from 'react-native';
 import { Link, router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+
 export default function RegisterScreen() {
+  console.log(API_URL);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,69 +78,72 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!validateForm()) {
+  if (!validateForm()) {
+    return;
+  }
+
+  setLoading(true);
+  setErrors({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+  });
+
+  try {
+    console.log('Attempting to register with:', { name: name.trim(), email: email.trim().toLowerCase() });
+    
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password: password,
+        password_confirmation: passwordConfirmation,
+      }),
+    });
+
+    console.log('Response status:', response.status);
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    if (!response.ok) {
+      if (data.errors) {
+        setErrors({
+          name: data.errors.name ? data.errors.name[0] : '',
+          email: data.errors.email ? data.errors.email[0] : '',
+          password: data.errors.password ? data.errors.password[0] : '',
+          password_confirmation: data.errors.password_confirmation
+            ? data.errors.password_confirmation[0]
+            : '',
+        });
+      } else {
+        Alert.alert('Error', data.message || 'Registration failed');
+      }
       return;
     }
 
-    setLoading(true);
-    setErrors({
-      name: '',
-      email: '',
-      password: '',
-      password_confirmation: '',
-    });
+    // Save token and user data (auto-login after registration)
+    await AsyncStorage.setItem('auth_token', data.token);
+    await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-    try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          password: password,
-          password_confirmation: passwordConfirmation,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.errors) {
-          setErrors({
-            name: data.errors.name ? data.errors.name[0] : '',
-            email: data.errors.email ? data.errors.email[0] : '',
-            password: data.errors.password ? data.errors.password[0] : '',
-            password_confirmation: data.errors.password_confirmation
-              ? data.errors.password_confirmation[0]
-              : '',
-          });
-        } else {
-          Alert.alert('Error', data.message || 'Registration failed');
-        }
-        return;
-      }
-
-      // Registration successful, redirect to login
-      Alert.alert(
-        'Success',
-        'Account created successfully! Please sign in.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(auth)/login'),
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Registration error:', error);
-      Alert.alert('Error', 'Network error. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Since onboarding_completed is false, redirect to onboarding
+    router.replace('/(auth)/onboarding');
+    
+  } catch (error) {
+    console.error('Registration error:', error);
+    Alert.alert(
+      'Connection Error', 
+      `Cannot connect to server. Please check:\n\n1. Your API_URL is correct\n2. Backend server is running\n3. You're on the same network\n\nCurrent URL: ${API_URL}\n\nError: ${error}`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView
