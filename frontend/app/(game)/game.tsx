@@ -42,7 +42,6 @@ export default function GameScreen() {
   useEffect(() => {
     if (gameId) {
       fetchGameState();
-      startTimer();
     } else {
       setError('No game ID provided');
       setIsLoading(false);
@@ -75,13 +74,30 @@ export default function GameScreen() {
       console.log('Game state response:', data);
 
       if (response.ok && data.success) {
+        // Start the round on backend FIRST
+        console.log('Starting round:', data.current_round.id);
+        const startResponse = await fetch(
+            `${API_URL}/game/${gameId}/round/${data.current_round.id}/start`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            }
+        );
+        
+        const startData = await startResponse.json();
+        console.log('Round started, time remaining:', startData.time_remaining);
+        
+        // Set state AFTER round has been started
         setGameState(data.game);
         setRoundState(data.current_round);
         setPlayerState(data.player);
         setOpponentState(data.opponent);
-        setTimeRemaining(data.current_round.time_remaining);
+        setTimeRemaining(startData.time_remaining || 30);
         
-        // Set pot to previous round's pot_after_bonus (or 0 for round 1)
+        // Set pot display
         if (data.current_round.round_number === 1) {
           setDisplayPot(0);
         } else {
@@ -89,6 +105,11 @@ export default function GameScreen() {
         }
         
         setIsLoading(false);
+        
+        // ONLY start timer AFTER we've set the correct time_remaining
+        if (!timerIntervalRef.current) {
+            startTimer();
+        }
       } else {
         setError(data.message || 'Failed to load game');
         setIsLoading(false);
