@@ -1,9 +1,12 @@
-import { Text, View, StyleSheet, ScrollView, Image } from "react-native";
-
+import { Text, View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from "react-native";
+import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Components
 import History from "@/components/history/history";
 import Stats from "@/components/profile/stats";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ProfileScreen() {
     const user = {
@@ -15,6 +18,52 @@ export default function ProfileScreen() {
       playerType: "Reliable Player",
       avatar: "../../assets/images/icon.png",
     }
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('auth_token');
+              
+              // Call backend logout endpoint
+              if (token) {
+                await fetch(`${API_URL}/logout`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                  },
+                });
+              }
+              
+              // Clear local storage
+              await AsyncStorage.removeItem('auth_token');
+              await AsyncStorage.removeItem('user');
+              
+              // Redirect to login
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              // Even if API call fails, still clear local data and redirect
+              await AsyncStorage.removeItem('auth_token');
+              await AsyncStorage.removeItem('user');
+              router.replace('/(auth)/login');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -32,6 +81,10 @@ export default function ProfileScreen() {
       
       <Stats/>
       <History scrollEnabled={false} />
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -47,6 +100,7 @@ const styles = StyleSheet.create({
   },
   content:{
     alignItems: "center",
+    paddingBottom: 40,
   },
   userInfo:{
     alignItems: "center",
@@ -73,6 +127,19 @@ const styles = StyleSheet.create({
     fontSize: 29,
     fontWeight: "bold",
     color: "white",
-  }
-
+  },
+  logoutButton: {
+    backgroundColor: '#ff3b30',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    marginTop: 30,
+    width: '90%',
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 })
