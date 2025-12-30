@@ -55,6 +55,7 @@ class QueueService
                 'user_id' => null,
                 'player_number' => $botPlayerNumber,
                 'is_bot' => true,
+                'bot_id' => $bot->id,
                 'bot_personality' => $bot->getOceanTraits(),
                 'total_invested' => 0,
                 'final_earnings' => 0,
