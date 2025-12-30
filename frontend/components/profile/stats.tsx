@@ -1,28 +1,29 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useUser } from "@/contexts/UserContext";
 
 export default function Stats()  {
-    const user = {
-        playerInfo: {
-            username: "John Doe",
-            age: 28,
-            gender: "Male",
-            nationality: "BEL",
-            balance: 1500,
-            playerType: "Reliable Player",
-            avatar: "../assets/images/icon.png",
-        },
-        trustProfile: {
-            trustScore: 85,
-            oceanModel:{
-                openness: 90,
-                conscientiousness: 80,
-                extraversion: 70,
-                agreeableness: 95,
-                neuroticism: 40,
-            }
-        }
-    };
+    const {user, loading, refreshUser} = useUser();
 
+    // Show loading spinner while fetching data
+    if (loading) {
+      return (
+        <View style={[styles.stats]}>
+          <ActivityIndicator size="large" color="#ffb300ff" />
+        </View>
+      );
+    }
+
+    // Show error if user data couldn't be loaded
+      if (!user) {
+        return (
+          <View style={styles.stats}>
+            <Text style={styles.errorText}>Failed to load stats</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={refreshUser}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
     
 
     return (
@@ -34,19 +35,19 @@ export default function Stats()  {
 
                         <View style={styles.row}>
                             <Text style={styles.label}>Username</Text>
-                            <Text style={styles.value}>{user.playerInfo.username}</Text>
+                            <Text style={styles.value}>{user.username}</Text>
                         </View>
                         <View style={styles.row}>
                             <Text style={styles.label}>Age</Text>
-                            <Text style={styles.value}>{user.playerInfo.age}</Text>
+                            <Text style={styles.value}>{user.age}</Text>
                         </View>
                         <View style={styles.row}>
                             <Text style={styles.label}>Gender</Text>
-                            <Text style={styles.value}>{user.playerInfo.gender}</Text>
+                            <Text style={styles.value}>{user.gender}</Text>
                         </View>
                         <View style={styles.row}>
                             <Text style={styles.label}>Nationality</Text>
-                            <Text style={styles.value}>{user.playerInfo.nationality}</Text>
+                            <Text style={styles.value}>{user.nationality}</Text>
                         </View>
                         
                      </View>
@@ -56,7 +57,7 @@ export default function Stats()  {
                      <View>
                         <View style={[styles.row, styles.trustScore]}>
                             <Text style={styles.label}>Trust Score</Text>
-                            <Text style={styles.value}>{user.trustProfile.trustScore}</Text>
+                            <Text style={styles.value}>{user.trust_score}</Text>
                         </View>
 
                         
@@ -64,23 +65,23 @@ export default function Stats()  {
 
                             <View style={styles.row}>
                                 <Text style={styles.label}>Openness</Text>
-                                <Text style={styles.value}>{user.trustProfile.oceanModel.openness}</Text>
+                                <Text style={styles.value}>{user.openness}</Text>
                             </View>
                             <View style={styles.row}>
                                 <Text style={styles.label}>Conscientiousness</Text>
-                                <Text style={styles.value}>{user.trustProfile.oceanModel.conscientiousness}</Text>  
+                                <Text style={styles.value}>{user.conscientiousness}</Text>  
                             </View>
                             <View style={styles.row}>
                                 <Text style={styles.label}>Extraversion</Text>
-                                <Text style={styles.value}>{user.trustProfile.oceanModel.extraversion}</Text>   
+                                <Text style={styles.value}>{user.extraversion}</Text>   
                             </View>
                             <View style={styles.row}>
                                 <Text style={styles.label}>Agreeableness</Text>
-                                <Text style={styles.value}>{user.trustProfile.oceanModel.agreeableness}</Text>
+                                <Text style={styles.value}>{user.agreeableness}</Text>
                             </View>
                             <View style={styles.row}>
                                 <Text style={styles.label}>Neuroticism</Text>
-                                <Text style={styles.value}>{user.trustProfile.oceanModel.neuroticism}</Text>  
+                                <Text style={styles.value}>{user.neuroticism}</Text>  
                             </View>
 
 
@@ -120,7 +121,6 @@ const styles = StyleSheet.create({
     info:{
         width: '50%',
         flexDirection: 'column',
-        
     },
     
     row:{
@@ -152,7 +152,26 @@ const styles = StyleSheet.create({
         height: 110,
         width:  110,
     },
+        errorText: {
+        color: 'white',
+        fontSize: 16,
+        marginBottom: 20,
+    },
+    retryButton: {
+        backgroundColor: '#007AFF',
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+  },
 })
 
 // Sources:
 // flexbox layout: https://chatgpt.com/share/694dd95c-a0d4-800a-9929-3b29abd0ace3
+// populate data:
+// https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
+

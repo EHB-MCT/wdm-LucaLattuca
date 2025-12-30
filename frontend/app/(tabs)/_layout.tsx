@@ -1,7 +1,10 @@
-import { Stack, Link, Tabs } from "expo-router";
-import { Image, Pressable } from "react-native";
+import { Link, Tabs } from "expo-router";
+import { Image, Pressable, Text, View, StyleSheet } from "react-native";
+import { useUser } from "@/contexts/UserContext";
 
 export default function TabsLayout() {
+  const { user } = useUser();
+
   return (
     <Tabs screenOptions={{
         headerStyle: { backgroundColor: 'black'},
@@ -18,18 +21,21 @@ export default function TabsLayout() {
             <Image
                 source={require("../../assets/images/tab-icons/home-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}    
-            ></Image>
+            />
           ),
         
           headerRight: () => (
-            <Link href={"/profile"} asChild>
-              <Pressable>
-                <Image
-                    source={require("../../assets/images/icon.png")}
-                    style={{ width: 46, height: 46,borderRadius: 100, marginRight: 10 }}    
-                ></Image>
+            <View style={styles.headerRight}>
+              <Text style={styles.username}>{user?.username || 'User'}</Text>
+              <Link href={"/profile"} asChild>
+                <Pressable>
+                  <Image
+                      source={require("../../assets/images/icon.png")}
+                      style={styles.avatar}    
+                  />
                 </Pressable>
-            </Link>
+              </Link>
+            </View>
           ),
         }}
       />
@@ -41,7 +47,7 @@ export default function TabsLayout() {
             <Image
                 source={require("../../assets/images/tab-icons/history-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}
-            ></Image>
+            />
             ),
         }}
       />
@@ -53,7 +59,7 @@ export default function TabsLayout() {
             <Image
                 source={require("../../assets/images/tab-icons/rewards-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}
-            ></Image>
+            />
             ),
         }}
       />
@@ -65,10 +71,29 @@ export default function TabsLayout() {
             <Image
                 source={require("../../assets/images/tab-icons/profile-tab-icon.png")}
                 style={{ width: size, height: size, tintColor: color }}
-            ></Image>
+            />
             ),
           }}
         />
     </Tabs>
     );
 }
+
+const styles = StyleSheet.create({
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  username: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+});

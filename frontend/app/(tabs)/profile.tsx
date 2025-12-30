@@ -1,6 +1,8 @@
-import { Text, View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from "react-native";
-import { router } from "expo-router";
+import { Text, View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useFocusEffect } from "expo-router";
+import { useState, useCallback } from "react";
+import { useUser } from "@/contexts/UserContext";
 
 // Components
 import History from "@/components/history/history";
@@ -9,74 +11,75 @@ import Stats from "@/components/profile/stats";
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ProfileScreen() {
-    const user = {
-      username: "John Doe",
-      age: 28,
-      gender: "Male",
-      nationality: "BEL",
-      balance: 1500,
-      playerType: "Reliable Player",
-      avatar: "../../assets/images/icon.png",
-    }
+ const { user, loading, refreshUser, logout } = useUser();
 
-  const handleLogout = async () => {
+  // Load user data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+    }, [])
+  );
+
+  // Helper function to determine player type based on trust score
+  const getPlayerType = (trustScore: number) => {
+    if (trustScore >= 80) return "Highly Trustworthy";
+    if (trustScore >= 60) return "Reliable Player";
+    if (trustScore <= 60 || trustScore >=40) return "Neutral Player";
+    if (trustScore <= 40) return "Cautious Player";
+    if (trustScore <= 20) return "Unpredictable";
+    return "New Player";
+  };
+
+
+  // Show loading spinner while fetching data
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  // Show error if user data couldn't be loaded
+  if (!user) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>Failed to load profile</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={refreshUser}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+
+
+  const handleLogout = () => {
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem('auth_token');
-              
-              // Call backend logout endpoint
-              if (token) {
-                await fetch(`${API_URL}/logout`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                  },
-                });
-              }
-              
-              // Clear local storage
-              await AsyncStorage.removeItem('auth_token');
-              await AsyncStorage.removeItem('user');
-              
-              // Redirect to login
-              router.replace('/(auth)/login');
-            } catch (error) {
-              console.error('Logout error:', error);
-              // Even if API call fails, still clear local data and redirect
-              await AsyncStorage.removeItem('auth_token');
-              await AsyncStorage.removeItem('user');
-              router.replace('/(auth)/login');
-            }
-          },
-        },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', style: 'destructive', onPress: logout },
       ]
     );
   };
 
+  
+  
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.userInfo}>
-
         <Text style={styles.username}>{user.username}</Text>
         <Image
-            source={require("../../assets/images/icon.png")}
-            style={styles.avatar}    
-        ></Image>
-        <Text style={styles.playerType}>{user.playerType}</Text>
+          source={require("../../assets/images/icon.png")}
+          style={styles.avatar}    
+        />
+        <Text style={styles.playerType}>{getPlayerType(user.trust_score)}</Text>
+        
         <Text style={styles.balance}>Balance</Text>
-        <Text style={styles.balance}>${user.balance}</Text>
+        <Text style={styles.balance}>${parseFloat(user.balance.toString()).toFixed(2)}</Text>
       </View>
       
       <Stats/>
@@ -89,18 +92,21 @@ export default function ProfileScreen() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'black',
     flex: 1
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textStyle: {
     color:'white',
   },
   content:{
     alignItems: "center",
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   userInfo:{
     alignItems: "center",
@@ -121,6 +127,11 @@ const styles = StyleSheet.create({
   playerType:{
     fontSize: 18,
     color: "white",
+    marginBottom: 5,
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#999",
     marginBottom: 10,
   },
   balance:{
@@ -136,10 +147,31 @@ const styles = StyleSheet.create({
     marginTop: 30,
     width: '90%',
     alignItems: 'center',
+    marginBottom: 10
   },
   logoutButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-})
+  errorText: {
+    color: 'white',
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+// Sources
+// user data populated, generated logout button using Claude code (Sonnet 4.5)
+// https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
