@@ -1,25 +1,30 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useUser } from "@/contexts/UserContext";
 
-type StatProps = {
-    user: {
-        username: string;
-        email: string;
-        balance: string | number;
-        age: number;
-        gender: string;
-        nationality: string;
-        trust_score: number;
+export default function Stats()  {
+    const {user, loading, refreshUser} = useUser();
 
-        openness?: number;
-        conscientiousness?: number;
-        extraversion?: number;
-        agreeableness?: number;
-        neuroticism?: number;
+    // Show loading spinner while fetching data
+    if (loading) {
+      return (
+        <View style={[styles.stats]}>
+          <ActivityIndicator size="large" color="#ffb300ff" />
+        </View>
+      );
     }
-}
 
-export default function Stats({user}: StatProps)  {
- 
+    // Show error if user data couldn't be loaded
+      if (!user) {
+        return (
+          <View style={styles.stats}>
+            <Text style={styles.errorText}>Failed to load stats</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={refreshUser}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+    
 
     return (
         <View style={styles.stats}>
@@ -116,7 +121,6 @@ const styles = StyleSheet.create({
     info:{
         width: '50%',
         flexDirection: 'column',
-        
     },
     
     row:{
@@ -148,7 +152,26 @@ const styles = StyleSheet.create({
         height: 110,
         width:  110,
     },
+        errorText: {
+        color: 'white',
+        fontSize: 16,
+        marginBottom: 20,
+    },
+    retryButton: {
+        backgroundColor: '#007AFF',
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+  },
 })
 
 // Sources:
 // flexbox layout: https://chatgpt.com/share/694dd95c-a0d4-800a-9929-3b29abd0ace3
+// populate data:
+// https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
+

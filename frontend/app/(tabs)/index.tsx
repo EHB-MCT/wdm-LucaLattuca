@@ -2,6 +2,7 @@ import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "@/contexts/UserContext";
 
 // Components
 import History from "@/components/history/history";
@@ -9,7 +10,8 @@ import GameButton from "@/components/game/gameButton";
 
 export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
-  const balance = 21034;
+  const {user} = useUser()
+  
 
    useEffect(() => {
     checkAuth();
@@ -42,6 +44,7 @@ export default function Index() {
     }
   };
 
+
   if (isLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
@@ -62,7 +65,7 @@ export default function Index() {
     <View style={styles.container}>
       <View>
         <Text style={styles.balance}>Balance</Text>
-        <Text style={styles.balance}>${balance}</Text>
+        <Text style={styles.balance}>${user?.balance}</Text>
       </View>
       <History containerStyle={{ height: "40%" }} />
       <GameButton />
@@ -85,5 +88,10 @@ const styles = StyleSheet.create({
     color:'white',
     fontSize: 30,
     fontWeight: "bold",
+    alignSelf:"center"
   }
 })
+
+// Sources
+// User data updated using Claude Code (Sonnet 4.5)
+// https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
