@@ -106,7 +106,10 @@ export default function LobbyScreen() {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (!isLoading && botInfo && countdown === 0) {
-      router.push(`/(game)/game/${params.gameId}`);
+        router.push({
+            pathname: '/game',
+            params: { gameId: params.gameId as string }
+        });
     }
   }, [isLoading, botInfo, countdown, params.gameId]);
 
@@ -230,3 +233,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+// Sources
+// generated lobby screen using Claude (Sonnet 4.5)
+// https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
