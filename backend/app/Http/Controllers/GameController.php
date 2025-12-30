@@ -7,6 +7,7 @@ use App\Services\GameService;
 use App\Models\Game;
 use App\Models\Round;
 use App\Models\GamePlayer;
+use App\Models\Bot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -65,6 +66,54 @@ class GameController extends Controller
                 'message' => 'Failed to join queue. Please try again.',
             ], 500);
         }
+    }
+
+        /**
+     * Get bot information.
+     */
+    public function getBotInfo(Request $request, $botId)
+    {
+        try {
+            $bot = Bot::findOrFail($botId);
+
+            return response()->json([
+                'success' => true,
+                'bot' => [
+                    'id' => $bot->id,
+                    'name' => $bot->name,
+                    'personality_type' => $bot->personality_type,
+                    'balance' => config('game.bot_default_balance', 10000), 
+                    'trust_score' => $this->calculateBotTrustScore($bot),
+                    'cooperation_tendency' => $bot->cooperation_tendency,
+                    'risk_tolerance' => $bot->risk_tolerance,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Get bot info failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Bot not found.',
+            ], 404);
+        }
+    }
+
+    /**
+     * Calculate bot's trust score based on personality traits.
+     * This gives a "display" trust score for the user to see.
+     */
+    private function calculateBotTrustScore(Bot $bot): float
+    {
+        // Trust score is primarily based on agreeableness and cooperation tendency
+        // High agreeableness + high cooperation = high trust score
+        $trustScore = (
+            ($bot->agreeableness * 0.4) + 
+            ($bot->cooperation_tendency * 0.4) + 
+            ((100 - $bot->neuroticism) * 0.2) // Low neuroticism = more trustworthy
+        );
+
+        // Round to 1 decimal place and ensure it's between 0-100
+        return round(min(100, max(0, $trustScore)), 1);
     }
 
     /**

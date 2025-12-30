@@ -13,6 +13,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/queue/join', [GameController::class, 'joinQueue']);
     Route::post('/queue/leave', [GameController::class, 'leaveQueue']);
     Route::get('/game/{gameId}', [GameController::class, 'getGameState']);
+    Route::get('/bot/{botId}', [GameController::class, 'getBotInfo']);
 });
 
 Route::post('/register', [AuthController::class, 'register']);

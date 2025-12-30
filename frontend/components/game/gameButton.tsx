@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, Alert, ActivityIndicator } from "react-native";
+import { Pressable, StyleSheet, Text, ActivityIndicator } from "react-native";
 import React, { useState } from "react";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,16 +12,12 @@ export default function GameButton() {
 
     async function joinQueue() {
         if (!user) {
-            Alert.alert('Error', 'User not found. Please log in again.');
+            console.error('User not found');
             return;
         }
 
-        // Check if user has sufficient balance
         if (user.balance < 100) {
-            Alert.alert(
-                'Insufficient Balance', 
-                'You need at least $100 to play.'
-            );
+            console.error('Insufficient balance');
             return;
         }
 
@@ -42,32 +38,23 @@ export default function GameButton() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Navigate to lobby page with matched bot info
+                // Navigate to lobby - lobby will handle the bot matching display
                 router.push({
                     pathname: '/(game)/lobby',
                     params: {
+                        gameId: data.game_id,
                         botId: data.bot.id,
                         botName: data.bot.name,
-                        gameId: data.game_id
+                        botPersonality: data.bot.personality_type,
+                        userPlayerNumber: data.user_player_number,
+                        roundId: data.round.id,
                     }
                 });
             } else {
-                Alert.alert('Error', data.message || 'Failed to join queue');
+                console.error('Failed to join queue:', data.message);
             }
         } catch (error) {
             console.error('Failed to join queue:', error);
-            
-            // For testing: Navigate to lobby even if API fails
-            Alert.alert(
-                'Development Mode',
-                'API not ready. Navigating to lobby for testing.',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => router.push('/(game)/lobby')
-                    }
-                ]
-            );
         } finally {
             setIsJoining(false);
         }
@@ -114,7 +101,3 @@ const styles = StyleSheet.create({
         top: 2,
     }
 });
-
-// Sources
-// Queue up logic added using Claude (Sonnet 4.5)
-// https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
