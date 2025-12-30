@@ -26,6 +26,8 @@ export default function GameButton() {
         try {
             const token = await AsyncStorage.getItem('auth_token');
             
+            console.log('Calling queue/join API...');
+            
             const response = await fetch(`${API_URL}/queue/join`, {
                 method: 'POST',
                 headers: {
@@ -37,8 +39,10 @@ export default function GameButton() {
 
             const data = await response.json();
 
+            console.log('Queue join response:', data);
+
             if (response.ok && data.success) {
-                // Navigate to lobby - lobby will handle the bot matching display
+                // Navigate to lobby immediately - lobby will handle loading/errors
                 router.push({
                     pathname: '/(game)/lobby',
                     params: {
@@ -55,6 +59,8 @@ export default function GameButton() {
             }
         } catch (error) {
             console.error('Failed to join queue:', error);
+            // Even if there's an error, we could still navigate to lobby
+            // and let lobby handle the connection issues
         } finally {
             setIsJoining(false);
         }

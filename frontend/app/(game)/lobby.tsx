@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -15,12 +15,13 @@ interface BotInfo {
 
 export default function LobbyScreen() {
   const params = useLocalSearchParams();
-  const [isLoading, setIsLoading] = useState(true); // Changed from isSearching
+  const [isLoading, setIsLoading] = useState(true);
   const [botInfo, setBotInfo] = useState<BotInfo | null>(null);
   const [countdown, setCountdown] = useState(10);
   const [loadingMessage, setLoadingMessage] = useState('Finding opponent...');
+  const [error, setError] = useState(false);
+  const retryCountRef = useRef(0);
 
-  // Fetch bot info immediately
   useEffect(() => {
     fetchBotInfo();
   }, []);
@@ -28,6 +29,7 @@ export default function LobbyScreen() {
   const fetchBotInfo = async () => {
     try {
       setLoadingMessage('Finding opponent...');
+      setError(false);
       
       // Simulate 2 seconds of "searching"
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -36,41 +38,67 @@ export default function LobbyScreen() {
       
       const token = await AsyncStorage.getItem('auth_token');
       
-      // Fetch bot information
-      const response = await fetch(`${API_URL}/bot/${params.botId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setBotInfo(data.bot);
-        setIsLoading(false); // Only stop loading when we have bot info
-      } else {
-        console.error('Failed to fetch bot info:', data);
-        // If API fails, show error or retry
-        setLoadingMessage('Failed to load opponent. Retrying...');
-        
-        // Retry after 1 second
-        setTimeout(() => {
-          fetchBotInfo();
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Failed to fetch bot info:', error);
-      setLoadingMessage('Connection error. Retrying...');
+      console.log('Fetching bot info from:', `${API_URL}/bot/${params.botId}`);
       
-      // Retry after 1 second
-      setTimeout(() => {
-        fetchBotInfo();
-      }, 1000);
+      // Manual timeout implementation
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const response = await fetch(`${API_URL}/bot/${params.botId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId); // Clear timeout if request succeeds
+        
+        const data = await response.json();
+
+        console.log('Bot info response:', data);
+
+        if (response.ok && data.success) {
+          setBotInfo(data.bot);
+          setIsLoading(false);
+          retryCountRef.current = 0;
+        } else {
+          console.error('Failed to fetch bot info:', data);
+          handleError();
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+    } catch (fetchError) {
+      console.error('Failed to fetch bot info:', fetchError);
+      handleError();
     }
   };
 
-  // Countdown timer (10 seconds) - only starts when bot info is loaded
+  const handleError = () => {
+    retryCountRef.current += 1;
+    
+    console.log('Retry attempt:', retryCountRef.current);
+    
+    if (retryCountRef.current <= 2) {
+      setLoadingMessage('Connection error. Retrying...');
+      setTimeout(() => {
+        fetchBotInfo();
+      }, 1000);
+    } else {
+      setError(true);
+      setIsLoading(false);
+      setLoadingMessage('Cannot connect to server');
+    }
+  };
+
+  const handleGoBack = () => {
+    router.back();
+  };
+
+  // Countdown timer (10 seconds)
   useEffect(() => {
     if (!isLoading && botInfo && countdown > 0) {
       const timer = setTimeout(() => {
@@ -78,29 +106,33 @@ export default function LobbyScreen() {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (!isLoading && botInfo && countdown === 0) {
-      // Navigate to game screen
-    //   router.push(`/(game)/game/${params.gameId}`);
+      router.push(`/(game)/game/${params.gameId}`);
     }
   }, [isLoading, botInfo, countdown, params.gameId]);
 
   return (
     <View style={styles.container}>
-      {isLoading ? (
-        // Loading - searching and fetching bot info
+      {isLoading || error ? (
         <View style={styles.searchingContainer}>
-          <ActivityIndicator size="large" color="white" />
+          {!error && <ActivityIndicator size="large" color="white" />}
           <Text style={styles.searchingText}>{loadingMessage}</Text>
+          
+          {error && (
+            <TouchableOpacity 
+              style={styles.goBackButton}
+              onPress={handleGoBack}
+            >
+              <Text style={styles.goBackText}>Go Back</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
-        // Bot found - show countdown and bot info
         <View style={styles.matchFoundContainer}>
-          {/* Countdown */}
           <View style={styles.countdownContainer}>
             <Text style={styles.countdownLabel}>Game starts in</Text>
             <Text style={styles.countdownNumber}>{countdown}</Text>
           </View>
 
-          {/* Bot Information */}
           <View style={styles.botInfoContainer}>
             <Text style={styles.botName}>{botInfo?.name}</Text>
             
@@ -137,6 +169,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     marginTop: 20,
+  },
+  goBackButton: {
+    marginTop: 30,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    borderRadius: 8,
+  },
+  goBackText: {
+    color: 'black',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   matchFoundContainer: {
     width: '100%',
