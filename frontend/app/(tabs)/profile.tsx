@@ -171,7 +171,7 @@ export default function ProfileScreen() {
         <Text style={styles.balance}>${parseFloat(user.balance.toString()).toFixed(2)}</Text>
       </View>
       
-      <Stats/>
+      <Stats user={user}/>
       <History scrollEnabled={false} />
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
