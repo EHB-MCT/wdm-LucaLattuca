@@ -2,7 +2,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  balance: string | number;
+  balance: number;
   age: number;
   gender: string;
   nationality: string;
