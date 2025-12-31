@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Activi
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/contexts/UserContext';
-import type { GameState, RoundState, PlayerState, OpponentState, GameApiResponse } from '@/types/game';
+import type { GameState, RoundState, PlayerState, OpponentState, GameApiResponse, RoundResultsState } from '@/types/game';
 
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
@@ -37,16 +37,7 @@ export default function GameScreen() {
 
   // Round results modal state
   const [showRoundResults, setShowRoundResults] = useState(false);
-  const [roundResults, setRoundResults] = useState<{
-    userChoice: string;
-    userInvestment: number;
-    opponentChoice: string;
-    opponentInvestment: number;
-    userPayout: number;
-    opponentPayout: number;
-    potTotal: number;
-    nextRoundNumber: number | null;
-  } | null>(null);
+  const [roundResults, setRoundResults] = useState<RoundResultsState | null>(null);
   
   const timerIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
   const choiceTimerRef = useRef<NodeJS.Timeout | number | null>(null);
@@ -69,7 +60,7 @@ export default function GameScreen() {
   }, [gameId]);
 
   const fetchGameState = async () => {
-  try {
+    try {
     setIsLoading(true);
     setError(null);
     
@@ -98,9 +89,14 @@ export default function GameScreen() {
       
       // Set state FIRST with the round data we received
       setGameState(data.game);
-      setRoundState(data.current_round);  // This has the round ID
+      setRoundState(data.current_round);
       setPlayerState(data.player);
       setOpponentState(data.opponent);
+      
+      // AUTO-SELECT INVEST at start of each round
+      setSelectedChoice('invest');
+      setInitialChoice('invest');
+      console.log('✅ Auto-selected INVEST for new round');
       
       // Verify it was set
       console.log('✓ Round state should be set now');
@@ -125,32 +121,36 @@ export default function GameScreen() {
       // Update time remaining from backend
       setTimeRemaining(startData.time_remaining || 30);
       
-      // Set pot display
-      if (data.current_round.round_number === 1) {
-        setDisplayPot(0);
-        console.log('💰 Pot set to 0 (Round 1)');
-      } else {
-        setDisplayPot(data.current_round.pot_before_bonus);
-        console.log('💰 Pot set to:', data.current_round.pot_before_bonus);
-      }
+      // Set pot display - Round all values
+      const potValue = data.current_round.round_number === 1 
+        ? 200  // Round 1 starts with base $200 pot
+        : Math.round(data.current_round.pot_before_bonus);
+      
+      setDisplayPot(potValue);
+      console.log('💰 Pot set to:', potValue);
       
       setIsLoading(false);
       
-      // ONLY start timer AFTER we've set the correct time_remaining
-      if (!timerIntervalRef.current) {
-          console.log('⏰ Starting countdown timer');
-          startTimer();
+      // Clear any existing timer before starting new one
+      if (timerIntervalRef.current) {
+        console.log('⏰ Clearing existing timer');
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
       }
+      
+      // Start new timer
+      console.log('⏰ Starting countdown timer');
+      startTimer();
     } else {
       setError(data.message || 'Failed to load game');
       setIsLoading(false);
     }
-  } catch (fetchError) {
-    console.error('❌ Failed to fetch game state:', fetchError);
-    setError('Connection error. Please try again.');
-    setIsLoading(false);
-  }
-};
+    } catch (fetchError) {
+      console.error('❌ Failed to fetch game state:', fetchError);
+      setError('Connection error. Please try again.');
+      setIsLoading(false);
+    }
+  };
 
   const startTimer = () => {
     timerIntervalRef.current = setInterval(() => {
@@ -272,7 +272,10 @@ export default function GameScreen() {
         opponentInvestment: resultData.round_results.opponent_investment,
         userPayout: resultData.round_results.user_payout,
         opponentPayout: resultData.round_results.opponent_payout,
-        potTotal: resultData.round_results.pot_total,
+        potBeforeBonus: resultData.round_results.pot_before_bonus,
+        potAfterBonus: resultData.round_results.pot_after_bonus,
+        bothInvested: resultData.round_results.both_invested,
+        trustBonusPercentage: resultData.round_results.trust_bonus_percentage,
         nextRoundNumber: resultData.round_results.next_round_number,
       });
 
@@ -318,7 +321,10 @@ export default function GameScreen() {
         opponentInvestment: 100,
         userPayout: 0,
         opponentPayout: 0,
-        potTotal: displayPot,
+        potBeforeBonus: displayPot,  // CHANGED from potTotal
+        potAfterBonus: displayPot,   // CHANGED from potTotal
+        bothInvested: false,          // ADD THIS
+        trustBonusPercentage: 0,      // ADD THIS
         nextRoundNumber: roundState && roundState.round_number < 3 ? roundState.round_number + 1 : null,
       });
       setShowRoundResults(true);
@@ -393,7 +399,7 @@ export default function GameScreen() {
         </View>
         <View style={styles.playerScores}>
           <Text style={styles.trustScoreText}>Trust score {user?.trust_score || 68}</Text>
-          <Text style={styles.balanceText}>${user?.balance?.toLocaleString() || '0'}</Text>
+          <Text style={styles.balanceText}>${Math.round(user?.balance || 0).toLocaleString()}</Text>
         </View>
       </View>
 
@@ -440,7 +446,7 @@ export default function GameScreen() {
 
         {/* Right side - Pot */}
         <View style={styles.potContainer}>
-          <Text style={styles.potAmount}>${displayPot.toFixed(2)}</Text>
+          <Text style={styles.potAmount}>${Math.round(displayPot)}</Text>
         </View>
       </View>
 
@@ -457,7 +463,7 @@ export default function GameScreen() {
         </View>
         <View style={styles.playerScores}>
           <Text style={styles.trustScoreText}>Trust score {opponentState?.trust_score || 56}</Text>
-          <Text style={styles.balanceText}>${opponentState?.balance?.toLocaleString() || '12,231'}</Text>
+          <Text style={styles.balanceText}>${Math.round(opponentState?.balance || 0).toLocaleString()}</Text>
         </View>
       </View>
 
@@ -466,7 +472,16 @@ export default function GameScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Round {roundState?.round_number} Results</Text>
-
+      
+            {/* Trust Bonus Notice (if both invested) */}
+            {roundResults.bothInvested && (
+              <View style={styles.trustBonusNotice}>
+                <Text style={styles.trustBonusText}>
+                  🤝 Both Invested! +{roundResults.trustBonusPercentage}% Trust Bonus
+                </Text>
+              </View>
+            )}
+      
             {/* User Result */}
             <View style={styles.resultRow}>
               <View style={styles.resultPlayerInfo}>
@@ -476,19 +491,28 @@ export default function GameScreen() {
               <View style={styles.resultChoice}>
                 <Text style={styles.resultChoiceText}>
                   {roundResults.userChoice === 'invest' 
-                    ? `Invested $${roundResults.userInvestment}` 
+                    ? `Invested $${Math.round(roundResults.userInvestment)}` 
                     : 'Cashed Out'}
                 </Text>
                 <Text style={styles.resultPayoutText}>
-                  ${roundResults.userPayout.toFixed(2)}
+                  ${Math.round(roundResults.userPayout)}
                 </Text>
               </View>
             </View>
                   
             {/* Pot Display */}
             <View style={styles.modalPotSection}>
-              <Text style={styles.modalPotLabel}>Total Pot</Text>
-              <Text style={styles.modalPotAmount}>${roundResults.potTotal}</Text>
+              <Text style={styles.modalPotLabel}>
+                {roundResults.bothInvested ? 'Pot After Bonus' : 'Total Pot'}
+              </Text>
+              <Text style={styles.modalPotAmount}>
+                ${Math.round(roundResults.potAfterBonus)}
+              </Text>
+              {roundResults.bothInvested && (
+                <Text style={styles.potBeforeBonusText}>
+                  (${Math.round(roundResults.potBeforeBonus)} + {roundResults.trustBonusPercentage}% bonus)
+                </Text>
+              )}
             </View>
                   
             {/* Opponent Result */}
@@ -500,11 +524,11 @@ export default function GameScreen() {
               <View style={styles.resultChoice}>
                 <Text style={styles.resultChoiceText}>
                   {roundResults.opponentChoice === 'invest' 
-                    ? `Invested $${roundResults.opponentInvestment}` 
+                    ? `Invested $${Math.round(roundResults.opponentInvestment)}` 
                     : 'Cashed Out'}
                 </Text>
                 <Text style={styles.resultPayoutText}>
-                  ${roundResults.opponentPayout.toFixed(2)}
+                  ${Math.round(roundResults.opponentPayout)}
                 </Text>
               </View>
             </View>
@@ -769,5 +793,22 @@ nextRoundText: {
   textAlign: 'center',
   marginTop: 20,
   fontStyle: 'italic',
+},
+trustBonusNotice: {
+  backgroundColor: '#e8f5e9',
+  padding: 12,
+  borderRadius: 8,
+  marginBottom: 15,
+},
+trustBonusText: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#2e7d32',
+  textAlign: 'center',
+},
+potBeforeBonusText: {
+  fontSize: 12,
+  color: '#666',
+  marginTop: 4,
 },
 });
