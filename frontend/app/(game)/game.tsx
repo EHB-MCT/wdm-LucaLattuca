@@ -34,6 +34,19 @@ export default function GameScreen() {
   const [timeOnCashOut, setTimeOnCashOut] = useState(0);
   const [numberOfToggles, setNumberOfToggles] = useState(0);
   const [initialChoice, setInitialChoice] = useState<'invest' | 'cash_out' | null>(null);
+
+  // Round results modal state
+  const [showRoundResults, setShowRoundResults] = useState(false);
+  const [roundResults, setRoundResults] = useState<{
+    userChoice: string;
+    userInvestment: number;
+    opponentChoice: string;
+    opponentInvestment: number;
+    userPayout: number;
+    opponentPayout: number;
+    potTotal: number;
+    nextRoundNumber: number | null;
+  } | null>(null);
   
   const timerIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
   const choiceTimerRef = useRef<NodeJS.Timeout | number | null>(null);
@@ -169,11 +182,11 @@ export default function GameScreen() {
     console.log('Round ended');
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
-
+    
     // Auto-lock the current choice (or default to invest if none selected)
     const finalChoice = selectedChoice || 'invest';
-    const finalInvestment = finalChoice === 'invest' ? parseFloat(investmentAmount) : 100;
-
+    const finalInvestment = finalChoice === 'invest' ? parseFloat(investmentAmount) : 0;
+    
     const decisionData = {
       choice: finalChoice,
       investment_amount: finalInvestment,
@@ -189,7 +202,7 @@ export default function GameScreen() {
     // Submit choice to backend
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      await fetch(`${API_URL}/game/${gameId}/round/${roundState?.id}/choice`, {
+      const response = await fetch(`${API_URL}/game/${gameId}/round/${roundState?.id}/choice`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -198,28 +211,51 @@ export default function GameScreen() {
         },
         body: JSON.stringify(decisionData)
       });
-    } catch (error) {
-      console.error('Failed to submit choice:', error);
-    }
-    
-    // Wait for results, then move to next round or end game
-    setTimeout(() => {
-      if (gameState && roundState && roundState.round_number < 3) {
-        // Next round
-        fetchGameState();
+
+      const resultData = await response.json();
+      console.log('Round result:', resultData);
+
+      // TODO: Once backend returns proper results, populate this with real data
+      // For now, using mock data structure
+      setRoundResults({
+        userChoice: finalChoice,
+        userInvestment: finalInvestment,
+        opponentChoice: 'invest', // TODO: get from backend
+        opponentInvestment: 100, // TODO: get from backend
+        userPayout: 0, // TODO: get from backend
+        opponentPayout: 0, // TODO: get from backend
+        potTotal: displayPot, // TODO: get from backend
+        nextRoundNumber: roundState && roundState.round_number < 3 ? roundState.round_number + 1 : null,
+      });
+
+      // Show modal
+      setShowRoundResults(true);
+
+      // Wait 3 seconds
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Hide modal
+      setShowRoundResults(false);
+
+      // Check if game continues
+      if (roundState && roundState.round_number < 3) {
+        // Reset tracking state
         setSelectedChoice(null);
         setInvestmentAmount('100');
-        setTimeRemaining(30);
         setTimeOnInvest(0);
         setTimeOnCashOut(0);
         setNumberOfToggles(0);
         setInitialChoice(null);
-        startTimer();
+
+        // Fetch next round
+        await fetchGameState();
       } else {
         // Game ended
         router.push('/');
       }
-    }, 3000); // 3 second delay to show results
+    } catch (error) {
+      console.error('Failed to submit choice:', error);
+    }
   };
 
   if (isLoading) {
@@ -333,6 +369,69 @@ export default function GameScreen() {
           <Text style={styles.balanceText}>${opponentState?.balance?.toLocaleString() || '12,231'}</Text>
         </View>
       </View>
+
+      {/* Round Results Modal */}
+      {showRoundResults && roundResults && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Round {roundState?.round_number} Results</Text>
+
+            {/* User Result */}
+            <View style={styles.resultRow}>
+              <View style={styles.resultPlayerInfo}>
+                <View style={styles.smallAvatar} />
+                <Text style={styles.resultPlayerName}>{user?.username || 'You'}</Text>
+              </View>
+              <View style={styles.resultChoice}>
+                <Text style={styles.resultChoiceText}>
+                  {roundResults.userChoice === 'invest' 
+                    ? `Invested $${roundResults.userInvestment}` 
+                    : 'Cashed Out'}
+                </Text>
+                <Text style={styles.resultPayoutText}>
+                  ${roundResults.userPayout.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+                  
+            {/* Pot Display */}
+            <View style={styles.modalPotSection}>
+              <Text style={styles.modalPotLabel}>Total Pot</Text>
+              <Text style={styles.modalPotAmount}>${roundResults.potTotal.toFixed(2)}</Text>
+            </View>
+                  
+            {/* Opponent Result */}
+            <View style={styles.resultRow}>
+              <View style={styles.resultPlayerInfo}>
+                <View style={styles.smallAvatar} />
+                <Text style={styles.resultPlayerName}>{opponentState?.name || 'Opponent'}</Text>
+              </View>
+              <View style={styles.resultChoice}>
+                <Text style={styles.resultChoiceText}>
+                  {roundResults.opponentChoice === 'invest' 
+                    ? `Invested $${roundResults.opponentInvestment}` 
+                    : 'Cashed Out'}
+                </Text>
+                <Text style={styles.resultPayoutText}>
+                  ${roundResults.opponentPayout.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+                  
+            {/* Next Round Info */}
+            {roundResults.nextRoundNumber && (
+              <Text style={styles.nextRoundText}>
+                Proceeding to Round {roundResults.nextRoundNumber}...
+              </Text>
+            )}
+            {!roundResults.nextRoundNumber && (
+              <Text style={styles.nextRoundText}>
+                Game Complete!
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -493,4 +592,91 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  // Modal styling
+  modalOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 1000,
+},
+modalContent: {
+  backgroundColor: 'white',
+  borderRadius: 16,
+  padding: 30,
+  width: '85%',
+  maxWidth: 400,
+},
+modalTitle: {
+  fontSize: 24,
+  fontWeight: 'bold',
+  color: 'black',
+  textAlign: 'center',
+  marginBottom: 25,
+},
+resultRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingVertical: 15,
+  borderBottomWidth: 1,
+  borderBottomColor: '#e0e0e0',
+},
+resultPlayerInfo: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  flex: 1,
+},
+smallAvatar: {
+  width: 35,
+  height: 35,
+  borderRadius: 17.5,
+  backgroundColor: '#e0e0e0',
+  marginRight: 10,
+},
+resultPlayerName: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: 'black',
+},
+resultChoice: {
+  alignItems: 'flex-end',
+},
+resultChoiceText: {
+  fontSize: 14,
+  color: '#666',
+  marginBottom: 4,
+},
+resultPayoutText: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: 'black',
+},
+modalPotSection: {
+  alignItems: 'center',
+  paddingVertical: 20,
+  borderBottomWidth: 1,
+  borderBottomColor: '#e0e0e0',
+},
+modalPotLabel: {
+  fontSize: 14,
+  color: '#666',
+  marginBottom: 5,
+},
+modalPotAmount: {
+  fontSize: 32,
+  fontWeight: 'bold',
+  color: 'black',
+},
+nextRoundText: {
+  fontSize: 16,
+  color: '#666',
+  textAlign: 'center',
+  marginTop: 20,
+  fontStyle: 'italic',
+},
 });

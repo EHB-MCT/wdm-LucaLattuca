@@ -226,28 +226,28 @@ class GameController extends Controller
     {
         try {
             $round = Round::findOrFail($roundId);
-            
+
             Log::info('Start round request', [
                 'round_id' => $roundId,
                 'current_started_at' => $round->started_at,
                 'now' => now(),
                 'diff' => $round->started_at->diffInSeconds(now(), false)
             ]);
-            
+
             // Always reset the round start time when the game screen loads
             $round->started_at = now();
             $round->save();
-            
+
             // Refresh the model to get the updated value
             $round->refresh();
-            
+
             $timeRemaining = $this->calculateTimeRemaining($round);
-            
+
             Log::info('Round started', [
                 'updated_started_at' => $round->started_at,
                 'time_remaining' => $timeRemaining
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'time_remaining' => $timeRemaining,
@@ -290,4 +290,5 @@ class GameController extends Controller
 // Sources
 // GameController generated using Claude (Sonnet 4.5)
 // https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
+
 
