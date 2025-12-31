@@ -27,7 +27,9 @@ export default function GameScreen() {
   const [selectedChoice, setSelectedChoice] = useState<'invest' | 'cash_out' | null>(null);
   const [investmentAmount, setInvestmentAmount] = useState('100');
   const [displayPot, setDisplayPot] = useState(0); // Pot shown on screen (updated after rounds)
-  
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [currentBotBalance, setCurrentBotBalance] = useState(10000);
+
   // Tracking state
   const [choiceStartTime, setChoiceStartTime] = useState<number>(Date.now());
   const [timeOnInvest, setTimeOnInvest] = useState(0);
@@ -60,7 +62,7 @@ export default function GameScreen() {
   }, [gameId]);
 
   const fetchGameState = async () => {
-    try {
+  try {
     setIsLoading(true);
     setError(null);
     
@@ -92,6 +94,17 @@ export default function GameScreen() {
       setRoundState(data.current_round);
       setPlayerState(data.player);
       setOpponentState(data.opponent);
+      setCurrentBalance(data.user_balance); 
+
+      // Set bot balance - start at 10000, then subtract based on rounds played
+      if (data.opponent.is_bot) {
+        const botBaseBalance = data.opponent.balance || 10000;
+        // Calculate bot's current balance by subtracting previous round investments
+        const roundsPlayed = data.game.total_rounds || 0;
+        const botBalance = botBaseBalance - (roundsPlayed * 100); // Each round bot invests $100
+        setCurrentBotBalance(Math.max(0, botBalance));
+        console.log('🤖 Bot balance set to:', botBalance);
+      }
       
       // AUTO-SELECT INVEST at start of each round
       setSelectedChoice('invest');
@@ -128,6 +141,7 @@ export default function GameScreen() {
       
       setDisplayPot(potValue);
       console.log('💰 Pot set to:', potValue);
+      console.log('💵 User balance:', data.user_balance); // ADD THIS LOG
       
       setIsLoading(false);
       
@@ -145,11 +159,11 @@ export default function GameScreen() {
       setError(data.message || 'Failed to load game');
       setIsLoading(false);
     }
-    } catch (fetchError) {
-      console.error('❌ Failed to fetch game state:', fetchError);
-      setError('Connection error. Please try again.');
-      setIsLoading(false);
-    }
+  } catch (fetchError) {
+    console.error('❌ Failed to fetch game state:', fetchError);
+    setError('Connection error. Please try again.');
+    setIsLoading(false);
+  }
   };
 
   const startTimer = () => {
@@ -279,6 +293,19 @@ export default function GameScreen() {
         nextRoundNumber: resultData.round_results.next_round_number,
       });
 
+      // Update bot balance if opponent is bot
+      if (opponentState?.is_bot) {
+        const botInvestment = resultData.round_results.opponent_investment || 0;
+        const botPayout = resultData.round_results.opponent_payout || 0;
+        setCurrentBotBalance(prev => prev - botInvestment + botPayout);
+        console.log('🤖 Bot balance updated:', {
+          previous: currentBotBalance,
+          investment: botInvestment,
+          payout: botPayout,
+          new: currentBotBalance - botInvestment + botPayout
+        });
+      }
+
       console.log('✅ Round results set, showing modal');
       
       // Show modal
@@ -321,10 +348,10 @@ export default function GameScreen() {
         opponentInvestment: 100,
         userPayout: 0,
         opponentPayout: 0,
-        potBeforeBonus: displayPot,  // CHANGED from potTotal
-        potAfterBonus: displayPot,   // CHANGED from potTotal
-        bothInvested: false,          // ADD THIS
-        trustBonusPercentage: 0,      // ADD THIS
+        potBeforeBonus: displayPot,  
+        potAfterBonus: displayPot,   
+        bothInvested: false,          
+        trustBonusPercentage: 0,      
         nextRoundNumber: roundState && roundState.round_number < 3 ? roundState.round_number + 1 : null,
       });
       setShowRoundResults(true);
@@ -399,7 +426,7 @@ export default function GameScreen() {
         </View>
         <View style={styles.playerScores}>
           <Text style={styles.trustScoreText}>Trust score {user?.trust_score || 68}</Text>
-          <Text style={styles.balanceText}>${Math.round(user?.balance || 0).toLocaleString()}</Text>
+          <Text style={styles.balanceText}>${Math.round(currentBalance).toLocaleString()}</Text>
         </View>
       </View>
 
@@ -463,7 +490,9 @@ export default function GameScreen() {
         </View>
         <View style={styles.playerScores}>
           <Text style={styles.trustScoreText}>Trust score {opponentState?.trust_score || 56}</Text>
-          <Text style={styles.balanceText}>${Math.round(opponentState?.balance || 0).toLocaleString()}</Text>
+          <Text style={styles.balanceText}>
+            ${Math.round(opponentState?.is_bot ? currentBotBalance : (opponentState?.balance || 0)).toLocaleString()}
+          </Text>
         </View>
       </View>
 
@@ -503,15 +532,20 @@ export default function GameScreen() {
             {/* Pot Display */}
             <View style={styles.modalPotSection}>
               <Text style={styles.modalPotLabel}>
-                {roundResults.bothInvested ? 'Pot After Bonus' : 'Total Pot'}
+                {roundResults.bothInvested ? 'Pot After Trust Bonus' : 'Total Pot'}
               </Text>
               <Text style={styles.modalPotAmount}>
                 ${Math.round(roundResults.potAfterBonus)}
               </Text>
               {roundResults.bothInvested && (
-                <Text style={styles.potBeforeBonusText}>
-                  (${Math.round(roundResults.potBeforeBonus)} + {roundResults.trustBonusPercentage}% bonus)
-                </Text>
+                <View style={styles.bonusBreakdown}>
+                  <Text style={styles.potBeforeBonusText}>
+                    Base Pot: ${Math.round(roundResults.potBeforeBonus)}
+                  </Text>
+                  <Text style={styles.bonusAppliedText}>
+                    +{roundResults.trustBonusPercentage}% Trust Bonus: ${Math.round(roundResults.potAfterBonus - roundResults.potBeforeBonus)}
+                  </Text>
+                </View>
               )}
             </View>
                   
@@ -806,9 +840,18 @@ trustBonusText: {
   color: '#2e7d32',
   textAlign: 'center',
 },
+bonusBreakdown: {
+  marginTop: 8,
+  alignItems: 'center',
+},
 potBeforeBonusText: {
   fontSize: 12,
   color: '#666',
-  marginTop: 4,
+  marginBottom: 2,
+},
+bonusAppliedText: {
+  fontSize: 12,
+  color: '#2e7d32',
+  fontWeight: '600',
 },
 });
