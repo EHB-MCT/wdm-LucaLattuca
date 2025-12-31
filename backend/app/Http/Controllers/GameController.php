@@ -6,6 +6,8 @@ use App\Services\QueueService;
 use App\Services\GameService;
 use App\Models\Game;
 use App\Models\Round;
+use App\Models\RoundStat;
+use App\Models\RoundResult;
 use App\Models\GamePlayer;
 use App\Models\Bot;
 use Illuminate\Http\Request;
@@ -71,8 +73,8 @@ class GameController extends Controller
         /**
          * Get bot information.
          */
-        public function getBotInfo(Request $request, $botId)
-        {
+    public function getBotInfo(Request $request, $botId)
+    {
             try {
                 $bot = Bot::findOrFail($botId);
             
@@ -96,13 +98,13 @@ class GameController extends Controller
                     'message' => 'Bot not found.',
                 ], 404);
             }
-        }
-    
-           /**
-        * Get current game state.
-        */
-        public function getGameState(Request $request, $gameId)
-        {
+    }
+
+       /**
+    * Get current game state.
+    */
+    public function getGameState(Request $request, $gameId)
+    {
             try {
                 $user = $request->user();
 
@@ -199,7 +201,7 @@ class GameController extends Controller
                     'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
                 ], 500);
             }
-        }
+    }
     
     /**
      * Calculate trust score from personality traits.
@@ -273,6 +275,131 @@ class GameController extends Controller
         return $remaining;
     }
 
+
+
+    /**
+ * Submit player choice for current round.
+ */
+public function submitChoice(Request $request, $gameId, $roundId)
+{
+    try {
+        $user = $request->user();
+        
+        $validated = $request->validate([
+            'choice' => 'required|in:invest,cash_out',
+            'investment_amount' => 'required|numeric|min:0',
+            'decision_time' => 'required|numeric',
+            'time_on_invest' => 'required|numeric',
+            'time_on_cash_out' => 'required|numeric',
+            'number_of_toggles' => 'required|integer',
+            'initial_choice' => 'required|in:invest,cash_out',
+        ]);
+
+        $round = Round::findOrFail($roundId);
+        $game = Game::findOrFail($gameId);
+        
+        // Verify user is part of this game
+        $gamePlayer = GamePlayer::where('game_id', $gameId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        // Save the choice to the round
+        if ($gamePlayer->player_number === 1) {
+            $round->player1_choice = $validated['choice'];
+            $round->player1_invested = $validated['investment_amount'];
+        } else {
+            $round->player2_choice = $validated['choice'];
+            $round->player2_invested = $validated['investment_amount'];
+        }
+        $round->save();
+
+        // Save tracking data to RoundStat
+        RoundStat::updateOrCreate(
+            [
+                'round_id' => $roundId,
+                'game_player_id' => $gamePlayer->id,
+            ],
+            [
+                'initial_choice' => $validated['initial_choice'],
+                'final_choice' => $validated['choice'],
+                'choice_changed' => $validated['initial_choice'] !== $validated['choice'],
+                'made_decision' => true,
+                'defaulted_to_invest' => false,
+                'time_to_first_choice' => $validated['decision_time'],
+                'time_on_invest' => $validated['time_on_invest'],
+                'time_on_cash_out' => $validated['time_on_cash_out'],
+                'number_of_toggles' => $validated['number_of_toggles'],
+                'choice_locked_at' => now(),
+            ]
+        );
+
+        Log::info('Player choice submitted', [
+            'game_id' => $gameId,
+            'round_id' => $roundId,
+            'player_number' => $gamePlayer->player_number,
+            'choice' => $validated['choice'],
+            'investment' => $validated['investment_amount'],
+        ]);
+
+        // Check if both players have made their choices
+        $round->refresh();
+        
+        if ($round->player1_choice !== null && $round->player2_choice !== null) {
+            // Both players have chosen - finalize the round
+            $this->gameService->finalizeRound($round);
+            $round->refresh();
+        }
+
+        // Get round results for response
+        $roundResults = $this->getRoundResults($round, $gamePlayer);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Choice submitted successfully',
+            'round_results' => $roundResults,
+        ], 200);
+
+    } catch (\Exception $e) {
+        Log::error('Submit choice failed: ' . $e->getMessage());
+        Log::error($e->getTraceAsString());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to submit choice.',
+            'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+        ], 500);
+    }
+}
+
+    /**
+     * Get round results for display.
+     */
+    private function getRoundResults(Round $round, GamePlayer $gamePlayer)
+    {
+        $opponent = $gamePlayer->opponent();
+
+        // Get round results from database
+        $userResult = RoundResult::where('round_id', $round->id)
+            ->where('game_player_id', $gamePlayer->id)
+            ->first();
+
+        $opponentResult = RoundResult::where('round_id', $round->id)
+            ->where('game_player_id', $opponent->id)
+            ->first();
+
+        return [
+            'user_choice' => $gamePlayer->player_number === 1 ? $round->player1_choice : $round->player2_choice,
+            'user_investment' => $gamePlayer->player_number === 1 ? $round->player1_invested : $round->player2_invested,
+            'user_payout' => $userResult ? $userResult->payout_amount : 0,
+            'opponent_choice' => $opponent->player_number === 1 ? $round->player1_choice : $round->player2_choice,
+            'opponent_investment' => $opponent->player_number === 1 ? $round->player1_invested : $round->player2_invested,
+            'opponent_payout' => $opponentResult ? $opponentResult->payout_amount : 0,
+            'pot_total' => $round->pot_after_bonus,
+            'next_round_number' => $round->round_number < 3 && !$round->someone_cashed_out ? $round->round_number + 1 : null,
+        ];
+    }
+
+
+
     /**
      * Leave queue (for future implementation if needed).
      */
@@ -285,6 +412,9 @@ class GameController extends Controller
             'message' => 'Left queue successfully.',
         ], 200);
     }
+
+
+
 }
 
 // Sources

@@ -51,6 +51,8 @@ export default function GameScreen() {
   const timerIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
   const choiceTimerRef = useRef<NodeJS.Timeout | number | null>(null);
 
+  const roundIdRef = useRef<number | null>(null);
+
   // Fetch game state on mount
   useEffect(() => {
     if (gameId) {
@@ -67,72 +69,88 @@ export default function GameScreen() {
   }, [gameId]);
 
   const fetchGameState = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const token = await AsyncStorage.getItem('auth_token');
-      
-      console.log('Fetching game state from:', `${API_URL}/game/${gameId}`);
-      
-      const response = await fetch(`${API_URL}/game/${gameId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      
-      console.log('Game state response:', data);
-
-      if (response.ok && data.success) {
-        // Start the round on backend FIRST
-        console.log('Starting round:', data.current_round.id);
-        const startResponse = await fetch(
-            `${API_URL}/game/${gameId}/round/${data.current_round.id}/start`,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
-            }
-        );
-        
-        const startData = await startResponse.json();
-        console.log('Round started, time remaining:', startData.time_remaining);
-        
-        // Set state AFTER round has been started
-        setGameState(data.game);
-        setRoundState(data.current_round);
-        setPlayerState(data.player);
-        setOpponentState(data.opponent);
-        setTimeRemaining(startData.time_remaining || 30);
-        
-        // Set pot display
-        if (data.current_round.round_number === 1) {
-          setDisplayPot(0);
-        } else {
-          setDisplayPot(data.current_round.pot_before_bonus);
-        }
-        
-        setIsLoading(false);
-        
-        // ONLY start timer AFTER we've set the correct time_remaining
-        if (!timerIntervalRef.current) {
-            startTimer();
-        }
-      } else {
-        setError(data.message || 'Failed to load game');
-        setIsLoading(false);
+  try {
+    setIsLoading(true);
+    setError(null);
+    
+    const token = await AsyncStorage.getItem('auth_token');
+    
+    console.log('🎮 Fetching game state from:', `${API_URL}/game/${gameId}`);
+    
+    const response = await fetch(`${API_URL}/game/${gameId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
       }
-    } catch (fetchError) {
-      console.error('Failed to fetch game state:', fetchError);
-      setError('Connection error. Please try again.');
+    });
+
+    const data = await response.json();
+    
+    console.log('📦 Game state response:', data);
+
+    if (response.ok && data.success) {
+      console.log('✅ Setting game state');
+      console.log('🎯 Current round ID:', data.current_round.id);
+      console.log('🎯 Round number:', data.current_round.round_number);
+      
+      // Store round ID in ref so it's accessible in callbacks
+      roundIdRef.current = data.current_round.id;
+      
+      // Set state FIRST with the round data we received
+      setGameState(data.game);
+      setRoundState(data.current_round);  // This has the round ID
+      setPlayerState(data.player);
+      setOpponentState(data.opponent);
+      
+      // Verify it was set
+      console.log('✓ Round state should be set now');
+      console.log('✓ Round ID stored in ref:', roundIdRef.current);
+      
+      // Start the round on backend SECOND
+      console.log('▶️ Starting round:', data.current_round.id);
+      const startResponse = await fetch(
+          `${API_URL}/game/${gameId}/round/${data.current_round.id}/start`,
+          {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Accept': 'application/json'
+              }
+          }
+      );
+      
+      const startData = await startResponse.json();
+      console.log('⏱️ Round started, time remaining:', startData.time_remaining);
+      
+      // Update time remaining from backend
+      setTimeRemaining(startData.time_remaining || 30);
+      
+      // Set pot display
+      if (data.current_round.round_number === 1) {
+        setDisplayPot(0);
+        console.log('💰 Pot set to 0 (Round 1)');
+      } else {
+        setDisplayPot(data.current_round.pot_before_bonus);
+        console.log('💰 Pot set to:', data.current_round.pot_before_bonus);
+      }
+      
+      setIsLoading(false);
+      
+      // ONLY start timer AFTER we've set the correct time_remaining
+      if (!timerIntervalRef.current) {
+          console.log('⏰ Starting countdown timer');
+          startTimer();
+      }
+    } else {
+      setError(data.message || 'Failed to load game');
       setIsLoading(false);
     }
-  };
+  } catch (fetchError) {
+    console.error('❌ Failed to fetch game state:', fetchError);
+    setError('Connection error. Please try again.');
+    setIsLoading(false);
+  }
+};
 
   const startTimer = () => {
     timerIntervalRef.current = setInterval(() => {
@@ -147,13 +165,21 @@ export default function GameScreen() {
   };
 
   // Track time spent on each choice
-  useEffect(() => {
+    useEffect(() => {
     if (selectedChoice) {
       choiceTimerRef.current = setInterval(() => {
         if (selectedChoice === 'invest') {
-          setTimeOnInvest(prev => prev + 0.1);
+          setTimeOnInvest(prev => {
+            const newValue = prev + 0.1;
+            console.log('Time on invest:', newValue.toFixed(1));
+            return newValue;
+          });
         } else {
-          setTimeOnCashOut(prev => prev + 0.1);
+          setTimeOnCashOut(prev => {
+            const newValue = prev + 0.1;
+            console.log('Time on cash out:', newValue.toFixed(1));
+            return newValue;
+          });
         }
       }, 100);
     }
@@ -164,14 +190,21 @@ export default function GameScreen() {
   }, [selectedChoice]);
 
   const handleChoiceToggle = (choice: 'invest' | 'cash_out') => {
+    console.log('🔄 Choice toggled to:', choice);
+  
     // Track initial choice
     if (!initialChoice) {
       setInitialChoice(choice);
+      console.log('✅ Initial choice set:', choice);
     }
 
     // Count toggles
     if (selectedChoice && selectedChoice !== choice) {
-      setNumberOfToggles(prev => prev + 1);
+      setNumberOfToggles(prev => {
+        const newCount = prev + 1;
+        console.log('🔢 Toggle count:', newCount);
+        return newCount;
+      });
     }
 
     setSelectedChoice(choice);
@@ -179,66 +212,87 @@ export default function GameScreen() {
   };
 
   const handleRoundEnd = async () => {
-    console.log('Round ended');
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
-    
-    // Auto-lock the current choice (or default to invest if none selected)
-    const finalChoice = selectedChoice || 'invest';
-    const finalInvestment = finalChoice === 'invest' ? parseFloat(investmentAmount) : 0;
-    
-    const decisionData = {
-      choice: finalChoice,
-      investment_amount: finalInvestment,
-      decision_time: (Date.now() - choiceStartTime) / 1000,
-      time_on_invest: timeOnInvest,
-      time_on_cash_out: timeOnCashOut,
-      number_of_toggles: numberOfToggles,
-      initial_choice: initialChoice || finalChoice,
-    };
+  console.log('⏰ Round ended');
+  console.log('📊 Current roundState:', roundState);
+  console.log('📊 Round ID from ref:', roundIdRef.current);
+  console.log('📊 Game ID:', gameId);
+  
+  if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+  if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
 
-    console.log('Auto-locking choice:', decisionData);
+  // Use the ref instead of state
+  const currentRoundId = roundIdRef.current;
+  
+  // Verify we have the round ID
+  if (!currentRoundId) {
+    console.error('❌ No round ID available in ref!');
+    setError('Round data missing. Please restart the game.');
+    return;
+  }
 
-    // Submit choice to backend
-    try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const response = await fetch(`${API_URL}/game/${gameId}/round/${roundState?.id}/choice`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(decisionData)
-      });
+  // Auto-lock the current choice (or default to invest if none selected)
+  const finalChoice = selectedChoice || 'invest';
+  const finalInvestment = finalChoice === 'invest' ? parseFloat(investmentAmount) : 0;
 
-      const resultData = await response.json();
-      console.log('Round result:', resultData);
+  const decisionData = {
+    choice: finalChoice,
+    investment_amount: finalInvestment,
+    decision_time: (Date.now() - choiceStartTime) / 1000,
+    time_on_invest: timeOnInvest,
+    time_on_cash_out: timeOnCashOut,
+    number_of_toggles: numberOfToggles,
+    initial_choice: initialChoice || finalChoice,
+  };
 
-      // TODO: Once backend returns proper results, populate this with real data
-      // For now, using mock data structure
+  console.log('🔒 Auto-locking choice:', decisionData);
+  console.log('📤 Submitting to URL:', `${API_URL}/game/${gameId}/round/${currentRoundId}/choice`);
+
+  // Submit choice to backend
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    const response = await fetch(`${API_URL}/game/${gameId}/round/${currentRoundId}/choice`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(decisionData)
+    });
+
+    const resultData = await response.json();
+    console.log('📥 Round result:', resultData);
+
+    if (resultData.success && resultData.round_results) {
+      // Use real data from backend
       setRoundResults({
-        userChoice: finalChoice,
-        userInvestment: finalInvestment,
-        opponentChoice: 'invest', // TODO: get from backend
-        opponentInvestment: 100, // TODO: get from backend
-        userPayout: 0, // TODO: get from backend
-        opponentPayout: 0, // TODO: get from backend
-        potTotal: displayPot, // TODO: get from backend
-        nextRoundNumber: roundState && roundState.round_number < 3 ? roundState.round_number + 1 : null,
+        userChoice: resultData.round_results.user_choice,
+        userInvestment: resultData.round_results.user_investment,
+        opponentChoice: resultData.round_results.opponent_choice,
+        opponentInvestment: resultData.round_results.opponent_investment,
+        userPayout: resultData.round_results.user_payout,
+        opponentPayout: resultData.round_results.opponent_payout,
+        potTotal: resultData.round_results.pot_total,
+        nextRoundNumber: resultData.round_results.next_round_number,
       });
 
+      console.log('✅ Round results set, showing modal');
+      
       // Show modal
       setShowRoundResults(true);
 
       // Wait 3 seconds
       await new Promise(resolve => setTimeout(resolve, 3000));
 
+      console.log('⏭️ Hiding modal, checking for next round');
+      
       // Hide modal
       setShowRoundResults(false);
 
       // Check if game continues
-      if (roundState && roundState.round_number < 3) {
+      if (resultData.round_results?.next_round_number) {
+        console.log('🔄 Moving to next round:', resultData.round_results.next_round_number);
+        
         // Reset tracking state
         setSelectedChoice(null);
         setInvestmentAmount('100');
@@ -246,16 +300,53 @@ export default function GameScreen() {
         setTimeOnCashOut(0);
         setNumberOfToggles(0);
         setInitialChoice(null);
-
+        
         // Fetch next round
         await fetchGameState();
       } else {
+        console.log('🏁 Game ended, returning to home');
         // Game ended
         router.push('/');
       }
-    } catch (error) {
-      console.error('Failed to submit choice:', error);
+    } else {
+      console.error('❌ Backend error:', resultData.message || resultData.error);
+      // Still show modal with partial data
+      setRoundResults({
+        userChoice: finalChoice,
+        userInvestment: finalInvestment,
+        opponentChoice: 'invest',
+        opponentInvestment: 100,
+        userPayout: 0,
+        opponentPayout: 0,
+        potTotal: displayPot,
+        nextRoundNumber: roundState && roundState.round_number < 3 ? roundState.round_number + 1 : null,
+      });
+      setShowRoundResults(true);
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setShowRoundResults(false);
+      
+      // Try to continue anyway
+      if (roundState && roundState.round_number < 3) {
+        await fetchGameState();
+      } else {
+        router.push('/');
+      }
     }
+  } catch (error) {
+    console.error('❌ Failed to submit choice:', error);
+    // Show error but still try to continue
+    setError('Failed to submit choice. Continuing...');
+    
+    setTimeout(() => {
+      setError(null);
+      if (roundState && roundState.round_number < 3) {
+        fetchGameState();
+      } else {
+        router.push('/');
+      }
+    }, 2000);
+  }
   };
 
   if (isLoading) {
@@ -397,7 +488,7 @@ export default function GameScreen() {
             {/* Pot Display */}
             <View style={styles.modalPotSection}>
               <Text style={styles.modalPotLabel}>Total Pot</Text>
-              <Text style={styles.modalPotAmount}>${roundResults.potTotal.toFixed(2)}</Text>
+              <Text style={styles.modalPotAmount}>${roundResults.potTotal}</Text>
             </View>
                   
             {/* Opponent Result */}

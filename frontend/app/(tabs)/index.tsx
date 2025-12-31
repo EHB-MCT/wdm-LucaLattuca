@@ -65,7 +65,7 @@ export default function Index() {
     <View style={styles.container}>
       <View>
         <Text style={styles.balance}>Balance</Text>
-        <Text style={styles.balance}>${user?.balance}</Text>
+        <Text style={styles.balance}>${Math.round(user?.balance || 0)}</Text>
       </View>
       <History containerStyle={{ height: "40%" }} />
       <GameButton />

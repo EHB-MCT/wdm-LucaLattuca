@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/game/{gameId}', [GameController::class, 'getGameState']);
     Route::get('/bot/{botId}', [GameController::class, 'getBotInfo']);
     Route::post('/game/{gameId}/round/{roundId}/start', [GameController::class, 'startRound']);
+    Route::post('/game/{gameId}/round/{roundId}/choice', [GameController::class, 'submitChoice']);
 });
 
 Route::post('/register', [AuthController::class, 'register']);
