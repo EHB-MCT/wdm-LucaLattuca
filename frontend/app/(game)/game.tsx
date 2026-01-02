@@ -155,9 +155,13 @@ export default function GameScreen() {
       // Start new timer
       console.log('⏰ Starting countdown timer');
       startTimer();
+    } else if (data.game_completed) {
+        console.log('🏁 Game completed, returning to home');
+        router.push('/');
+        return;
     } else {
-      setError(data.message || 'Failed to load game');
-      setIsLoading(false);
+        setError(data.message || 'Failed to load game');
+        setIsLoading(false);
     }
   } catch (fetchError) {
     console.error('❌ Failed to fetch game state:', fetchError);

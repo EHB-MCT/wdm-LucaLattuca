@@ -121,18 +121,39 @@ class GameService
      */
     public function finalizeRound(Round $round): void
     {
-        DB::transaction(function () use ($round) {
-            $game = $round->game;
+    DB::transaction(function () use ($round) {
+        $game = $round->game;
         $gamePlayers = $game->gamePlayers;
 
         $player1 = $gamePlayers->where('player_number', 1)->first();
         $player2 = $gamePlayers->where('player_number', 2)->first();
 
+        Log::info('=== FINALIZING ROUND ===', [
+            'round_id' => $round->id,
+            'round_number' => $round->round_number,
+        ]);
+
         // Handle players who didn't make a decision (auto-invest default amount)
         $this->handleDefaultInvestments($round, $player1, $player2);
 
-        // Calculate pot before bonus
-        $round->pot_before_bonus = $round->player1_invested + $round->player2_invested;
+        // Get pot from previous round (if exists)
+        $previousRound = Round::where('game_id', $game->id)
+            ->where('round_number', '<', $round->round_number)
+            ->where('ended_at', '!=', null)
+            ->orderBy('round_number', 'desc')
+            ->first();
+        
+        $carryForwardPot = $previousRound ? $previousRound->pot_after_bonus : 0;
+        
+        Log::info('Pot calculation', [
+            'previous_round' => $previousRound?->id,
+            'carry_forward_pot' => $carryForwardPot,
+            'player1_invested' => $round->player1_invested,
+            'player2_invested' => $round->player2_invested,
+        ]);
+
+        // Calculate pot before bonus = carry forward + new investments
+        $round->pot_before_bonus = $carryForwardPot + $round->player1_invested + $round->player2_invested;
 
         // Check if both players invested
         $bothInvested = ($round->player1_choice === 'invest' && $round->player2_choice === 'invest');
@@ -141,10 +162,23 @@ class GameService
         $round->both_invested = $bothInvested;
         $round->someone_cashed_out = $someoneCashedOut;
 
+        Log::info('Round choices', [
+            'both_invested' => $bothInvested,
+            'someone_cashed_out' => $someoneCashedOut,
+            'player1_choice' => $round->player1_choice,
+            'player2_choice' => $round->player2_choice,
+        ]);
+
         // Apply trust bonus if both invested
         if ($bothInvested) {
             $round->trust_bonus_percentage = Round::getTrustBonusForRound($round->round_number);
             $round->pot_after_bonus = $round->pot_before_bonus * (1 + ($round->trust_bonus_percentage / 100));
+            
+            Log::info('Trust bonus applied', [
+                'bonus_percentage' => $round->trust_bonus_percentage,
+                'pot_before' => $round->pot_before_bonus,
+                'pot_after' => $round->pot_after_bonus,
+            ]);
         } else {
             $round->pot_after_bonus = $round->pot_before_bonus;
         }
@@ -152,13 +186,20 @@ class GameService
         $round->ended_at = now();
         $round->save();
 
+        Log::info('Round saved with pot values', [
+            'pot_before_bonus' => $round->pot_before_bonus,
+            'pot_after_bonus' => $round->pot_after_bonus,
+        ]);
+
         // Deduct investments from player balances IMMEDIATELY
         $this->updatePlayerBalances($round, $player1, $player2);
 
         // Calculate and distribute payouts
         if ($someoneCashedOut) {
+            Log::info('Handling cash out scenario');
             $this->handleCashOutScenario($round, $player1, $player2);
         } else if ($bothInvested) {
+            Log::info('Handling mutual cooperation scenario');
             $this->handleMutualCooperationScenario($round, $player1, $player2);
         }
 
@@ -166,24 +207,23 @@ class GameService
         $game->increment('total_rounds');
         $game->refresh(); // Refresh to get updated total_rounds
 
-        Log::info('Round finalized', [
-            'round_number' => $round->round_number,
-            'someone_cashed_out' => $someoneCashedOut,
-                'game_total_rounds' => $game->total_rounds,
-            ]);
+        Log::info('Game counter updated', [
+            'total_rounds' => $game->total_rounds,
+        ]);
 
-            // Check if game should end (someone cashed out OR all 3 rounds complete)
-            if ($someoneCashedOut || $game->total_rounds >= 3) {
-                Log::info('Game ending', [
-                    'reason' => $someoneCashedOut ? 'cash_out' : 'completed_3_rounds',
-                ]);
-                $this->finalizeGame($game);
-            } else {
-                // Create next round if game continues
-                Log::info('Creating next round');
-                $this->createNextRound($game, $round->round_number);
-            }
-        });
+        // Check if game should end (someone cashed out OR all 3 rounds complete)
+        if ($someoneCashedOut || $game->total_rounds >= 3) {
+            Log::info('🏁 Game ending', [
+                'reason' => $someoneCashedOut ? 'cash_out' : 'completed_3_rounds',
+            ]);
+            $this->finalizeGame($game);
+        } else {
+            Log::info('➡️ Creating next round');
+            $this->createNextRound($game, $round->round_number);
+        }
+        
+        Log::info('=== ROUND FINALIZATION COMPLETE ===');
+    });
     }
 
     /**
