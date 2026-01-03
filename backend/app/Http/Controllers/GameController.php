@@ -476,35 +476,57 @@ class GameController extends Controller
      */
     private function makeBotChoice(GamePlayer $botPlayer, Round $round): array
     {
-        $bot = Bot::find($botPlayer->bot_id);
+    $bot = Bot::find($botPlayer->bot_id);
+    
+    if (!$bot) {
+        // Default to cooperate if bot not found
+        return [
+            'choice' => 'invest',
+            'investment' => 100,
+        ];
+    }
+    
+    // Get bot's cooperation tendency (0-100) and risk tolerance
+    $cooperationTendency = $bot->cooperation_tendency;
+    $riskTolerance = $bot->risk_tolerance;
+    
+    // Random number to determine choice
+    $random = rand(0, 100);
+    
+    if ($random <= $cooperationTendency) {
+        // Bot cooperates - investment amount based on risk tolerance
+        // Higher risk tolerance = higher investment
+        // Range: 100 to 500
+        $baseInvestment = 100;
+        $maxAdditional = 400;
+        $riskFactor = $riskTolerance / 100; // 0 to 1
+        $additionalAmount = $maxAdditional * $riskFactor;
+        $totalInvestment = $baseInvestment + $additionalAmount;
         
-        if (!$bot) {
-            // Default to cooperate if bot not found
-            return [
-                'choice' => 'invest',
-                'investment' => 100,
-            ];
-        }
+        // Round to nearest 10
+        $totalInvestment = round($totalInvestment / 10) * 10;
         
-        // Get bot's cooperation tendency (0-100)
-        $cooperationTendency = $bot->cooperation_tendency;
+        Log::info('🤖 Bot investing', [
+            'cooperation_tendency' => $cooperationTendency,
+            'risk_tolerance' => $riskTolerance,
+            'investment' => $totalInvestment,
+        ]);
         
-        // Random number to determine choice
-        $random = rand(0, 100);
+        return [
+            'choice' => 'invest',
+            'investment' => $totalInvestment,
+        ];
+    } else {
+        // Bot defects
+        Log::info('🤖 Bot cashing out', [
+            'cooperation_tendency' => $cooperationTendency,
+        ]);
         
-        if ($random <= $cooperationTendency) {
-            // Bot cooperates
-            return [
-                'choice' => 'invest',
-                'investment' => 100,
-            ];
-        } else {
-            // Bot defects
-            return [
-                'choice' => 'cash_out',
-                'investment' => 0,
-            ];
-        }
+        return [
+            'choice' => 'cash_out',
+            'investment' => 0,
+        ];
+    }
     }
 
     /**
