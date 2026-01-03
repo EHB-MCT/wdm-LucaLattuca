@@ -12,7 +12,7 @@ return [
     */
 
     // Round settings
-    'round_duration' => env('GAME_ROUND_DURATION', 30), // seconds
+    'round_duration' => env('GAME_ROUND_DURATION', 3000), // seconds
     'total_rounds' => 3,
 
     // Default investment settings

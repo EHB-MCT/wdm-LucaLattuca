@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity,  ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/contexts/UserContext';
 import type { GameState, RoundState, PlayerState, OpponentState, GameApiResponse, RoundResultsState } from '@/types/game';
 
+
+import ValuePicker from '../../components/game/valuePicker';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -25,7 +27,7 @@ export default function GameScreen() {
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(30);
   const [selectedChoice, setSelectedChoice] = useState<'invest' | 'cash_out' | null>(null);
-  const [investmentAmount, setInvestmentAmount] = useState('100');
+  const [investmentAmount, setInvestmentAmount] = useState<number>(100);
   const [displayPot, setDisplayPot] = useState(0); // Pot shown on screen (updated after rounds)
   const [currentBalance, setCurrentBalance] = useState(0);
   const [currentBotBalance, setCurrentBotBalance] = useState(10000);
@@ -142,7 +144,7 @@ export default function GameScreen() {
       setDisplayPot(potValue);
       console.log('💰 Pot set to:', potValue);
       console.log('💵 User balance:', data.user_balance); // ADD THIS LOG
-      
+        
       setIsLoading(false);
       
       // Clear any existing timer before starting new one
@@ -229,6 +231,8 @@ export default function GameScreen() {
     setChoiceStartTime(Date.now());
   };
 
+
+  
   const handleRoundEnd = async () => {
   console.log('⏰ Round ended');
   console.log('📊 Current roundState:', roundState);
@@ -249,8 +253,17 @@ export default function GameScreen() {
   }
 
   // Auto-lock the current choice (or default to invest if none selected)
-  const finalChoice = selectedChoice || 'invest';
-  const finalInvestment = finalChoice === 'invest' ? parseFloat(investmentAmount) : 0;
+ const finalChoice = selectedChoice || 'invest';
+  // Parse investment amount, default to 100 if invalid
+  const parsedInvestment = investmentAmount || 100;
+  const finalInvestment = finalChoice === 'invest' ? parsedInvestment : 0;
+
+  console.log('💵 Investment amount:', {
+    raw: investmentAmount,
+    parsed: parsedInvestment,
+    final: finalInvestment,
+    choice: finalChoice
+  });
 
   const decisionData = {
     choice: finalChoice,
@@ -329,7 +342,7 @@ export default function GameScreen() {
         
         // Reset tracking state
         setSelectedChoice(null);
-        setInvestmentAmount('100');
+        setInvestmentAmount(100);
         setTimeOnInvest(0);
         setTimeOnCashOut(0);
         setNumberOfToggles(0);
@@ -410,7 +423,8 @@ export default function GameScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+  <View style={styles.container}>
+    <View style={styles.contentContainer}>
       {/* Header - Round and Timer */}
       <View style={styles.header}>
         <Text style={styles.roundText}>Round {roundState?.round_number || 1}</Text>
@@ -438,30 +452,30 @@ export default function GameScreen() {
       <View style={styles.centerSection}>
         {/* Left side - Choices */}
         <View style={styles.choicesContainer}>
-          {/* Invest Button with Amount Input */}
-          <View style={styles.investRow}>
-            <TouchableOpacity
-              style={[
-                styles.choiceButton,
-                styles.investButton,
-                selectedChoice === 'invest' && styles.selectedButton
-              ]}
-              onPress={() => handleChoiceToggle('invest')}
-            >
-              <Text style={styles.choiceButtonText}>Invest</Text>
-            </TouchableOpacity>
-
-            <View style={styles.investmentInputContainer}>
-              <Text style={styles.dollarSign}>$</Text>
-              <TextInput
-                style={styles.investmentInput}
-                value={investmentAmount}
-                onChangeText={setInvestmentAmount}
-                keyboardType="numeric"
-              />
-            </View>
+          {/* Invest Button */}
+          <TouchableOpacity
+            style={[
+              styles.choiceButton,
+              styles.investButton,
+              selectedChoice === 'invest' && styles.selectedButton
+            ]}
+            onPress={() => handleChoiceToggle('invest')}
+          >
+            <Text style={styles.choiceButtonText}>Invest</Text>
+          </TouchableOpacity>
+          
+          {/* Investment Amount Picker */}
+          <View style={styles.investmentInputContainer}>
+            <Text style={styles.dollarSign}>$</Text>
+            <ValuePicker 
+              minValue={100} 
+              maxValue={Math.min(currentBalance, 5000)} 
+              increment={10} 
+              initialValue={investmentAmount}
+              onValueSettled={setInvestmentAmount}
+            />
           </View>
-
+          
           {/* Cash Out Button */}
           <TouchableOpacity
             style={[
@@ -474,13 +488,13 @@ export default function GameScreen() {
             <Text style={styles.choiceButtonText}>Cash out</Text>
           </TouchableOpacity>
         </View>
-
+          
         {/* Right side - Pot */}
         <View style={styles.potContainer}>
           <Text style={styles.potAmount}>${Math.round(displayPot)}</Text>
         </View>
       </View>
-
+          
       {/* Player 2 (Opponent/Bot) */}
       <View style={styles.playerSection}>
         <View style={styles.avatar} />
@@ -585,7 +599,8 @@ export default function GameScreen() {
           </View>
         </View>
       )}
-    </ScrollView>
+    </View>
+  </View>
   );
 }
 
@@ -605,9 +620,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   roundText: {
-    fontSize: 18,
+    fontSize: 28,
     color: 'black',
-    textDecorationLine: 'underline',
+    fontWeight:"bold"
   },
   timerText: {
     fontSize: 24,
@@ -617,6 +632,7 @@ const styles = StyleSheet.create({
   playerSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop:15,
     marginBottom: 30,
     paddingBottom: 20,
     borderBottomWidth: 1,
@@ -666,25 +682,18 @@ const styles = StyleSheet.create({
   centerSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginVertical: 30,
   },
   choicesContainer: {
     flex: 1,
-    marginRight: 20,
-  },
-  investRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    gap: 10,
+    marginRight: 40,
   },
   choiceButton: {
     padding: 15,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#e0e0e0',
-    flex: 1,
+    marginBottom: 15,
   },
   investButton: {
     backgroundColor: '#e8f5e9',
@@ -694,23 +703,25 @@ const styles = StyleSheet.create({
   },
   selectedButton: {
     borderColor: 'black',
-    borderWidth: 3,
-  },
-  choiceButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'black',
+    borderWidth: 3, 
   },
   investmentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center', // Center the picker
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    marginBottom: 15, // Add spacing before Cash Out button
+  },
+  choiceButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'black',
   },
   dollarSign: {
     fontSize: 18,
