@@ -46,6 +46,9 @@ export default function GameScreen() {
   const timerIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
   const choiceTimerRef = useRef<NodeJS.Timeout | number | null>(null);
 
+  const investmentAmountRef = useRef<number>(100);
+  const selectedChoiceRef = useRef<'invest' | 'cash_out' | null>('invest');
+
   const roundIdRef = useRef<number | null>(null);
 
   // Fetch game state on mount
@@ -56,6 +59,9 @@ export default function GameScreen() {
       setError('No game ID provided');
       setIsLoading(false);
     }
+
+    selectedChoiceRef.current = 'invest';
+    investmentAmountRef.current = 100;
     
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
@@ -228,19 +234,20 @@ export default function GameScreen() {
     }
 
     setSelectedChoice(choice);
+    selectedChoiceRef.current = choice;
     setChoiceStartTime(Date.now());
   };
 
 
   
   const handleRoundEnd = async () => {
-  console.log('⏰ Round ended');
-  console.log('📊 Current roundState:', roundState);
-  console.log('📊 Round ID from ref:', roundIdRef.current);
-  console.log('📊 Game ID:', gameId);
+    console.log('⏰ Round ended');
+    console.log('📊 Current roundState:', roundState);
+    console.log('📊 Round ID from ref:', roundIdRef.current);
+    console.log('📊 Game ID:', gameId);
   
-  if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-  if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
 
   // Use the ref instead of state
   const currentRoundId = roundIdRef.current;
@@ -252,14 +259,13 @@ export default function GameScreen() {
     return;
   }
 
-  // Auto-lock the current choice (or default to invest if none selected)
- const finalChoice = selectedChoice || 'invest';
-  // Parse investment amount, default to 100 if invalid
-  const parsedInvestment = investmentAmount || 100;
+  
+  const finalChoice = selectedChoiceRef.current || 'invest';
+  const parsedInvestment = investmentAmountRef.current || 100;
   const finalInvestment = finalChoice === 'invest' ? parsedInvestment : 0;
 
   console.log('💵 Investment amount:', {
-    raw: investmentAmount,
+    raw: investmentAmountRef.current,
     parsed: parsedInvestment,
     final: finalInvestment,
     choice: finalChoice
@@ -341,12 +347,14 @@ export default function GameScreen() {
         console.log('🔄 Moving to next round:', resultData.round_results.next_round_number);
         
         // Reset tracking state
-        setSelectedChoice(null);
-        setInvestmentAmount(100);
-        setTimeOnInvest(0);
-        setTimeOnCashOut(0);
-        setNumberOfToggles(0);
-        setInitialChoice(null);
+      setSelectedChoice(null);
+      selectedChoiceRef.current = 'invest'; 
+      setInvestmentAmount(100);
+      investmentAmountRef.current = 100; 
+      setTimeOnInvest(0);
+      setTimeOnCashOut(0);
+      setNumberOfToggles(0);
+      setInitialChoice(null);
         
         // Fetch next round
         await fetchGameState();
@@ -472,7 +480,11 @@ export default function GameScreen() {
               maxValue={Math.min(currentBalance, 5000)} 
               increment={10} 
               initialValue={investmentAmount}
-              onValueSettled={setInvestmentAmount}
+              onValueSettled={(value) => {
+                console.log('💰 Investment amount updated:', value);
+                setInvestmentAmount(value);
+                investmentAmountRef.current = value; // ADD THIS
+              }}
             />
           </View>
           

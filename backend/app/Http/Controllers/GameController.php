@@ -326,6 +326,12 @@ class GameController extends Controller
 
             $round = Round::findOrFail($roundId);
             $game = Game::findOrFail($gameId);
+
+            Log::info('💰 Received investment amount from frontend', [
+                'raw_input' => $request->input('investment_amount'),
+                'validated_amount' => $validated['investment_amount'],
+                'choice' => $validated['choice'],
+            ]);
             
             Log::info('Round and game loaded', [
                 'round_number' => $round->round_number,
