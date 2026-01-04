@@ -75,7 +75,7 @@ class Round extends Model
     /**
      * Get the round result for this round.
      */
-    public function roundResult(): HasMany
+    public function roundResults(): HasMany
     {
         return $this->hasMany(RoundResult::class);
     }

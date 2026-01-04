@@ -12,13 +12,14 @@ return [
     */
 
     // Round settings
-    'round_duration' => env('GAME_ROUND_DURATION', 30), // seconds
+    'round_duration' => env('GAME_ROUND_DURATION', 20), // seconds
     'total_rounds' => 3,
+    'round_results_display_time' => env('GAME_RESULTS_DISPLAY_TIME', 5),
 
     // Default investment settings
     'default_investment_amount' => env('GAME_DEFAULT_INVESTMENT', 100.00),
     'round_1_initial_investment' => 100.00, // Both players auto-invest $100 in round 1
-
+    
     // Trust bonus percentages by round
     'trust_bonuses' => [
         1 => 20, // 20% bonus in round 1
