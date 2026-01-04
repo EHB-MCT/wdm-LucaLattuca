@@ -59,22 +59,47 @@ export default function Index() {
       setIsBalanceLoading(true);
       const token = await AsyncStorage.getItem('auth_token');
       
-      const response = await fetch(`${API_URL}/api/user`, {
+      if (!token) {
+        console.log('❌ [INDEX] No auth token found');
+        return;
+      }
+
+      // Debug logging
+      const fullUrl = `${API_URL}/user`;
+      console.log('📡 [INDEX] Fetching balance from:', fullUrl);
+      console.log('🔑 [INDEX] Token exists:', !!token);
+      console.log('🔑 [INDEX] Token preview:', token.substring(0, 20) + '...');
+      
+      const response = await fetch(fullUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log('📥 [INDEX] Response status:', response.status);
+      console.log('📥 [INDEX] Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [INDEX] Error response:', errorText);
+        throw new Error(`Failed to fetch balance: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('✅ [INDEX] User data received:', {
+        hasUser: !!data.user,
+        balance: data.user?.balance
+      });
       
       if (data) {
         // Update user context
         await refreshUser();
-        console.log('✅ Balance refreshed:', data.balance);
+        console.log('✅ [INDEX] Balance refreshed:', data.user?.balance);
       }
     } catch (error) {
-      console.error('❌ Failed to fetch balance:', error);
+      console.error('❌ [INDEX] Failed to fetch balance:', error);
     } finally {
       setIsBalanceLoading(false);
     }
@@ -136,3 +161,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+// Sources
+// updated using Claude (Sonnet 4.5)
+// https://claude.ai/share/7505ce54-ca95-413e-8aba-ab94e2c4d97a
