@@ -42,27 +42,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const token = await AsyncStorage.getItem('auth_token');
       
       if (!token) {
+        console.log('❌ [USER_CONTEXT] No token found');
         setUser(null);
         return;
       }
 
-      const response = await fetch(`${API_URL}/user`, {
+      const fullUrl = `${API_URL}/user`;
+      console.log('📡 [USER_CONTEXT] Refreshing user from:', fullUrl);
+      console.log('🔑 [USER_CONTEXT] Token exists:', !!token);
+
+      const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log('📥 [USER_CONTEXT] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch user data');
+        const errorText = await response.text();
+        console.error('❌ [USER_CONTEXT] Response error:', errorText);
+        throw new Error(`Failed to fetch user data: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('✅ [USER_CONTEXT] User data received:', {
+        hasUser: !!data.user,
+        username: data.user?.username
+      });
       setUser(data.user);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
     } catch (error) {
-      console.error('Error refreshing user:', error);
+      console.error('❌ [USER_CONTEXT] Error refreshing user:', error);
     }
   };
 
