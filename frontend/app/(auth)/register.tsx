@@ -351,3 +351,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+// Sources
+// Register created using Claude
+// https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92

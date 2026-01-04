@@ -883,3 +883,8 @@ bonusAppliedText: {
   fontWeight: '600',
 },
 });
+
+// Sources
+// Game developed using Claude (Sonnet 4.5)
+// https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
+// https://claude.ai/share/a12f69bf-4d58-491c-a32c-e5dea7c58683
