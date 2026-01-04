@@ -334,8 +334,11 @@ export default function GameScreen() {
       // Show modal
       setShowRoundResults(true);
 
-      // Wait 3 seconds
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // modal timer from game config
+      console.log(`displaytime`+ resultData.round_results.display_time_ms)
+      const displayTime = resultData.round_results.display_time_ms || 5000;
+      console.log(`displaytime`+displayTime)
+      await new Promise(resolve => setTimeout(resolve, displayTime));
 
       console.log('⏭️ Hiding modal, checking for next round');
       

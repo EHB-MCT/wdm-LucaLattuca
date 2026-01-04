@@ -563,6 +563,7 @@ class GameController extends Controller
             'both_invested' => $round->both_invested,
             'trust_bonus_percentage' => $round->trust_bonus_percentage,
             'next_round_number' => $round->round_number < 3 && !$round->someone_cashed_out ? $round->round_number + 1 : null,
+            'display_time_ms' => config('game.round_results_display_time', 5) * 1000,
         ];
     }
 
