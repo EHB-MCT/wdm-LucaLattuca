@@ -17,7 +17,7 @@ export default function LobbyScreen() {
   const params = useLocalSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [botInfo, setBotInfo] = useState<BotInfo | null>(null);
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(8);
   const [loadingMessage, setLoadingMessage] = useState('Finding opponent...');
   const [error, setError] = useState(false);
   const retryCountRef = useRef(0);
@@ -98,12 +98,12 @@ export default function LobbyScreen() {
     router.back();
   };
 
-  // Countdown timer (10 seconds)
+  // Countdown timer (8 seconds)
   useEffect(() => {
     if (!isLoading && botInfo && countdown > 0) {
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
-      }, 500);
+      }, 800);
       return () => clearTimeout(timer);
     } else if (!isLoading && botInfo && countdown === 0) {
         router.push({
