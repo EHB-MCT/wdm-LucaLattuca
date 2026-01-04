@@ -46,17 +46,10 @@ export default function History({ scrollEnabled = true, containerStyle }: Histor
             
             if (!token) {
                 setError('Not authenticated');
-                console.log('❌ No auth token found');
                 return;
             }
 
-            // Debug logging
-            const fullUrl = `${API_URL}/game-history`;
-            console.log('📡 [HISTORY] Fetching from:', fullUrl);
-            console.log('🔑 [HISTORY] Token exists:', !!token);
-            console.log('🔑 [HISTORY] Token preview:', token.substring(0, 20) + '...');
-
-            const response = await fetch(fullUrl, {
+            const response = await fetch(`${API_URL}/game-history`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -65,23 +58,14 @@ export default function History({ scrollEnabled = true, containerStyle }: Histor
                 },
             });
 
-            console.log('📥 [HISTORY] Response status:', response.status);
-            console.log('📥 [HISTORY] Response ok:', response.ok);
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ [HISTORY] Error response:', errorText);
                 throw new Error(`Failed to fetch game history: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('✅ [HISTORY] Data received:', {
-                success: data.success,
-                historyCount: data.history?.length || 0
-            });
             setGames(data.history);
         } catch (err) {
-            console.error('❌ [HISTORY] Error fetching game history:', err);
+            console.error('Error fetching game history:', err);
             setError('Failed to load game history');
         } finally {
             setLoading(false);
@@ -90,17 +74,17 @@ export default function History({ scrollEnabled = true, containerStyle }: Histor
 
     // Helper function to get background color based on choice
     const getBackgroundColor = (choice: 'invest' | 'cash_out'): string => {
-        return choice === 'invest' ? '#8fe591ff' : '#f69f99ff'; // green for invest, red for cash out
+        return choice === 'invest' ? '#ffffffff' : '#edededff'; // green for invest, red for cash out
     };
 
     // Helper function to get choice text color
     const getChoiceTextColor = (choice: 'invest' | 'cash_out'): string => {
-        return choice === 'invest' ? '#00ff5eff' : '#ff0000ff'; // green for invest, red for cash out
+        return choice === 'invest' ? '#22C55E' : '#EF4444'; // green for invest, red for cash out
     };
 
     // Helper function to get net result color
     const getNetResultColor = (netResult: number): string => {
-        return netResult >= 0 ? '#00ff5eff' : '#ff0000ff'; // green for profit, red for loss
+        return netResult >= 0 ? '#22C55E' : '#EF4444'; // green for profit, red for loss
     };
 
     // Helper function to format earnings
@@ -164,7 +148,7 @@ export default function History({ scrollEnabled = true, containerStyle }: Histor
                                 {item.player1.name}
                                 {item.player1.is_bot && ' (Bot)'}
                             </Text>
-                            
+                           
                             <Text style={styles.player}>
                                 {item.player2.name}
                                 {item.player2.is_bot && ' (Bot)'}
@@ -212,12 +196,12 @@ export default function History({ scrollEnabled = true, containerStyle }: Histor
                                         {formatEarnings(item.player2.net_result)}
                                     </Text>
                                 </View>
+                                
                             </View>
-                            
                         </View>
-                        <Text style={styles.rounds}>
+                         <Text style={styles.rounds}>
                                 Rounds: {item.total_rounds}
-                        </Text>
+                            </Text>
                     </>
                 )}
                 contentContainerStyle={styles.matchList}
@@ -270,7 +254,7 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingBottom: 5,
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "space-around",
         alignSelf: "center"
     },
     player: {
@@ -280,7 +264,6 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         fontSize: 18
     },
-
     rounds:{
         color:"white",
         alignSelf:"center"
