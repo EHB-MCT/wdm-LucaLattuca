@@ -49,6 +49,20 @@ export interface GameApiResponse {
   user_balance: number;
 }
 
+export interface RoundResultsState {
+  userChoice: string;
+  userInvestment: number;
+  opponentChoice: string;
+  opponentInvestment: number;
+  userPayout: number;
+  opponentPayout: number;
+  potBeforeBonus: number;
+  potAfterBonus: number;
+  bothInvested: boolean;
+  trustBonusPercentage: number;
+  nextRoundNumber: number | null;
+}
+
 // Sources
 // generated interface class using Claude (Sonnet 4.5)
 // https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
