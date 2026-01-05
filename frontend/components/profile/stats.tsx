@@ -1,8 +1,25 @@
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useUser } from "@/contexts/UserContext";
+import { RadarChart } from 'react-native-gifted-charts';
 
 export default function Stats()  {
     const {user, loading, refreshUser} = useUser();
+
+    const radarData = [
+        user?.openness ?? 0,
+        user?.conscientiousness ?? 0,
+        user?.extraversion ?? 0,
+        user?.agreeableness ?? 0,
+        user?.neuroticism ?? 0,
+    ]
+
+    const radarLabels = [
+        "Openness",
+        "Conscientiousness",
+        "Extraversion",
+        "Agreeableness",
+        "Neuroticism",
+    ]
 
     // Show loading spinner while fetching data
     if (loading) {
@@ -91,10 +108,39 @@ export default function Stats()  {
                </View>
                <View style={styles.graphs}>
                     <View style={styles.trustScoreGraph}>
-
+                        {/* Trust score graph placeholder */}
                     </View>
                     <View style={styles.oceanGraph}>
-
+                            <RadarChart
+                                data={radarData}
+                                labels={radarLabels}
+                                maxValue={100}
+                                chartSize={100}  
+                                noOfSections={4}
+                                polygonConfig={{
+                                    fill: 'rgba(0, 128, 255, 0.2)',
+                                    opacity: 0.3,
+                                    stroke: '#007AFF',
+                                    strokeWidth: 1.5,
+                                    showDataValuesAsLabels: true,
+                                }}
+                                gridConfig={{
+                                    stroke: '#ddd',
+                                    strokeWidth: 0.5,
+                                }}
+                                labelConfig={{
+                                    fontSize: 7, 
+                                    stroke: '#333',
+                                    fontWeight: '600',
+                                }}
+                                dataLabelsConfig={{
+                                    fontSize: 8,  
+                                    stroke: '#007AFF',
+                                    fontWeight: 'bold',
+                                }}
+                                labelsPositionOffset={5}  
+                                dataLabelsPositionOffset={2}  
+                            />
                     </View>
                     
                </View>
@@ -142,15 +188,17 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     trustScoreGraph:{
-        borderWidth: 1,
         height: 30,
         marginBottom: 5,
     },
     oceanGraph:{
         alignSelf: 'center',
-        borderWidth: 1,
         height: 110,
         width:  110,
+        justifyContent: 'center',  
+        alignItems: 'center',      
+        overflow: 'hidden',        
+        paddingLeft:20
     },
         errorText: {
         color: 'white',
@@ -174,4 +222,5 @@ const styles = StyleSheet.create({
 // flexbox layout: https://chatgpt.com/share/694dd95c-a0d4-800a-9929-3b29abd0ace3
 // populate data:
 // https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
-
+// RadarChart implementation: Claude (Sonnet 4.5)
+// https://claude.ai/share/7dd11964-5d7e-4736-a272-801a7f3db088
