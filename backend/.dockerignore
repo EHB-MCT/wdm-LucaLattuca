@@ -1,0 +1,22 @@
+.git
+.gitignore
+.env
+.env.backup
+node_modules
+vendor
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+.phpunit.result.cache
+tests
+.editorconfig
+.styleci.yml
+README.md
+CHANGELOG.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+# Docker files generated using Claude
+# https://claude.ai/share/f72af865-8914-4c91-bb7f-2a4f228b1069
