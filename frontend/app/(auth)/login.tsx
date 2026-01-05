@@ -59,7 +59,7 @@ export default function LoginScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
@@ -93,7 +93,10 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', 'Network error. Please check your connection and try again.');
+      Alert.alert(
+        'Error',
+        'Network error. Please check your connection and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -120,7 +123,7 @@ export default function LoginScreen() {
               style={[styles.input, errors.email ? styles.inputError : null]}
               placeholder="Enter your email"
               value={email}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setEmail(text);
                 if (errors.email) setErrors({ ...errors, email: '' });
               }}
@@ -140,7 +143,7 @@ export default function LoginScreen() {
               style={[styles.input, errors.password ? styles.inputError : null]}
               placeholder="Enter your password"
               value={password}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setPassword(text);
                 if (errors.password) setErrors({ ...errors, password: '' });
               }}
@@ -266,4 +269,3 @@ const styles = StyleSheet.create({
 // Sources
 // Generated using Claude Caude
 // https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
-

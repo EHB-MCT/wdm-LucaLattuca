@@ -11,13 +11,12 @@ interface ValuePickerProps {
 }
 
 export default function ValuePicker({
-  minValue = 100, 
-  maxValue = 5000, 
+  minValue = 100,
+  maxValue = 5000,
   increment = 10,
   initialValue = 100,
-  onValueSettled
+  onValueSettled,
 }: ValuePickerProps) {
-    
   const [selectedValue, setSelectedValue] = useState<number>(initialValue);
 
   // Update when initialValue changes (for round resets)
@@ -40,37 +39,36 @@ export default function ValuePicker({
   };
 
   return (
-      <Picker
-        selectedValue={selectedValue}
-        onValueChange={handleValueChange}
-        style={styles.picker}
-        itemStyle={styles.pickerItem} // iOS specific
-      >
-        {values.map((value) => (
-          <Picker.Item 
-            key={value} 
-            label={value.toString()} 
-            value={value}
-            color="black" // Android specific
-          />
-        ))}
-      </Picker>
+    <Picker
+      selectedValue={selectedValue}
+      onValueChange={handleValueChange}
+      style={styles.picker}
+      itemStyle={styles.pickerItem} // iOS specific
+    >
+      {values.map(value => (
+        <Picker.Item
+          key={value}
+          label={value.toString()}
+          value={value}
+          color="black" // Android specific
+        />
+      ))}
+    </Picker>
   );
 }
 
-const styles = StyleSheet.create({  
-    picker: {
-        height: 40,
-        width: 200,
-    },
-    pickerItem: {
-        // iOS specific styling
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'black',
-        height: 40,
-
-    }
+const styles = StyleSheet.create({
+  picker: {
+    height: 40,
+    width: 200,
+  },
+  pickerItem: {
+    // iOS specific styling
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'black',
+    height: 40,
+  },
 });
 // sources
 // value picker generated using Claude (Sonnet 4.5)

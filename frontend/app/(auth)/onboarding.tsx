@@ -74,8 +74,12 @@ export default function OnboardingScreen() {
   const [nationality, setNationality] = useState('');
   const [nationalityLabel, setNationalityLabel] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({ age: '', gender: '', nationality: '' });
-  
+  const [errors, setErrors] = useState({
+    age: '',
+    gender: '',
+    nationality: '',
+  });
+
   // Modal states
   const [showAgePicker, setShowAgePicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
@@ -134,19 +138,26 @@ export default function OnboardingScreen() {
       const token = await AsyncStorage.getItem('auth_token');
 
       if (!token) {
-        Alert.alert('Error', 'Authentication token not found. Please login again.');
+        Alert.alert(
+          'Error',
+          'Authentication token not found. Please login again.'
+        );
         router.replace('/(auth)/login');
         return;
       }
 
-      console.log('Completing onboarding with:', { age: parseInt(age), gender, nationality });
+      console.log('Completing onboarding with:', {
+        age: parseInt(age),
+        gender,
+        nationality,
+      });
 
       const response = await fetch(`${API_URL}/onboarding`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           age: parseInt(age),
@@ -163,7 +174,9 @@ export default function OnboardingScreen() {
           setErrors({
             age: data.errors.age ? data.errors.age[0] : '',
             gender: data.errors.gender ? data.errors.gender[0] : '',
-            nationality: data.errors.nationality ? data.errors.nationality[0] : '',
+            nationality: data.errors.nationality
+              ? data.errors.nationality[0]
+              : '',
           });
         } else {
           Alert.alert('Error', data.message || 'Onboarding failed');
@@ -207,7 +220,7 @@ export default function OnboardingScreen() {
           </View>
           <FlatList
             data={options}
-            keyExtractor={(item) => item.value}
+            keyExtractor={item => item.value}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.modalItem}
@@ -236,39 +249,67 @@ export default function OnboardingScreen() {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Age</Text>
           <TouchableOpacity
-            style={[styles.selectButton, errors.age ? styles.selectButtonError : null]}
+            style={[
+              styles.selectButton,
+              errors.age ? styles.selectButtonError : null,
+            ]}
             onPress={() => setShowAgePicker(true)}
             disabled={loading}
           >
-            <Text style={[styles.selectButtonText, !ageLabel && styles.placeholderText]}>
+            <Text
+              style={[
+                styles.selectButtonText,
+                !ageLabel && styles.placeholderText,
+              ]}
+            >
               {ageLabel || 'Select your age'}
             </Text>
           </TouchableOpacity>
-          {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
+          {errors.age ? (
+            <Text style={styles.errorText}>{errors.age}</Text>
+          ) : null}
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Gender</Text>
           <TouchableOpacity
-            style={[styles.selectButton, errors.gender ? styles.selectButtonError : null]}
+            style={[
+              styles.selectButton,
+              errors.gender ? styles.selectButtonError : null,
+            ]}
             onPress={() => setShowGenderPicker(true)}
             disabled={loading}
           >
-            <Text style={[styles.selectButtonText, !genderLabel && styles.placeholderText]}>
+            <Text
+              style={[
+                styles.selectButtonText,
+                !genderLabel && styles.placeholderText,
+              ]}
+            >
               {genderLabel || 'Select your gender'}
             </Text>
           </TouchableOpacity>
-          {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
+          {errors.gender ? (
+            <Text style={styles.errorText}>{errors.gender}</Text>
+          ) : null}
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Nationality</Text>
           <TouchableOpacity
-            style={[styles.selectButton, errors.nationality ? styles.selectButtonError : null]}
+            style={[
+              styles.selectButton,
+              errors.nationality ? styles.selectButtonError : null,
+            ]}
             onPress={() => setShowNationalityPicker(true)}
             disabled={loading}
           >
-            <Text style={[styles.selectButtonText, !nationalityLabel && styles.placeholderText]}>
+            <Text
+              style={[
+                styles.selectButtonText,
+                !nationalityLabel && styles.placeholderText,
+              ]}
+            >
               {nationalityLabel || 'Select your nationality'}
             </Text>
           </TouchableOpacity>
@@ -294,7 +335,7 @@ export default function OnboardingScreen() {
         showAgePicker,
         () => setShowAgePicker(false),
         ageOptions,
-        (item) => {
+        item => {
           setAge(item.value);
           setAgeLabel(item.label);
           if (errors.age) setErrors({ ...errors, age: '' });
@@ -306,7 +347,7 @@ export default function OnboardingScreen() {
         showGenderPicker,
         () => setShowGenderPicker(false),
         GENDER_OPTIONS,
-        (item) => {
+        item => {
           setGender(item.value);
           setGenderLabel(item.label);
           if (errors.gender) setErrors({ ...errors, gender: '' });
@@ -318,7 +359,7 @@ export default function OnboardingScreen() {
         showNationalityPicker,
         () => setShowNationalityPicker(false),
         NATIONALITY_OPTIONS,
-        (item) => {
+        item => {
           setNationality(item.value);
           setNationalityLabel(item.label);
           if (errors.nationality) setErrors({ ...errors, nationality: '' });

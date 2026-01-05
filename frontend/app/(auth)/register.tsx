@@ -17,7 +17,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-
 export default function RegisterScreen() {
   console.log(API_URL);
   const [name, setName] = useState('');
@@ -78,72 +77,74 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-  if (!validateForm()) {
-    return;
-  }
-
-  setLoading(true);
-  setErrors({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-  });
-
-  try {
-    console.log('Attempting to register with:', { name: name.trim(), email: email.trim().toLowerCase() });
-    
-    const response = await fetch(`${API_URL}/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password: password,
-        password_confirmation: passwordConfirmation,
-      }),
-    });
-
-    console.log('Response status:', response.status);
-    const data = await response.json();
-    console.log('Response data:', data);
-
-    if (!response.ok) {
-      if (data.errors) {
-        setErrors({
-          name: data.errors.name ? data.errors.name[0] : '',
-          email: data.errors.email ? data.errors.email[0] : '',
-          password: data.errors.password ? data.errors.password[0] : '',
-          password_confirmation: data.errors.password_confirmation
-            ? data.errors.password_confirmation[0]
-            : '',
-        });
-      } else {
-        Alert.alert('Error', data.message || 'Registration failed');
-      }
+    if (!validateForm()) {
       return;
     }
 
-    // Save token and user data (auto-login after registration)
-    await AsyncStorage.setItem('auth_token', data.token);
-    await AsyncStorage.setItem('user', JSON.stringify(data.user));
+    setLoading(true);
+    setErrors({
+      name: '',
+      email: '',
+      password: '',
+      password_confirmation: '',
+    });
 
-    // Since onboarding_completed is false, redirect to onboarding
-    router.replace('/(auth)/onboarding');
-    
-  } catch (error) {
-    console.error('Registration error:', error);
-    Alert.alert(
-      'Connection Error', 
-      `Cannot connect to server. Please check:\n\n1. Your API_URL is correct\n2. Backend server is running\n3. You're on the same network\n\nCurrent URL: ${API_URL}\n\nError: ${error}`
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      console.log('Attempting to register with:', {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+      });
+
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: password,
+          password_confirmation: passwordConfirmation,
+        }),
+      });
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (!response.ok) {
+        if (data.errors) {
+          setErrors({
+            name: data.errors.name ? data.errors.name[0] : '',
+            email: data.errors.email ? data.errors.email[0] : '',
+            password: data.errors.password ? data.errors.password[0] : '',
+            password_confirmation: data.errors.password_confirmation
+              ? data.errors.password_confirmation[0]
+              : '',
+          });
+        } else {
+          Alert.alert('Error', data.message || 'Registration failed');
+        }
+        return;
+      }
+
+      // Save token and user data (auto-login after registration)
+      await AsyncStorage.setItem('auth_token', data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+
+      // Since onboarding_completed is false, redirect to onboarding
+      router.replace('/(auth)/onboarding');
+    } catch (error) {
+      console.error('Registration error:', error);
+      Alert.alert(
+        'Connection Error',
+        `Cannot connect to server. Please check:\n\n1. Your API_URL is correct\n2. Backend server is running\n3. You're on the same network\n\nCurrent URL: ${API_URL}\n\nError: ${error}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -166,7 +167,7 @@ export default function RegisterScreen() {
               style={[styles.input, errors.name ? styles.inputError : null]}
               placeholder="Enter your name"
               value={name}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setName(text);
                 if (errors.name) setErrors({ ...errors, name: '' });
               }}
@@ -185,7 +186,7 @@ export default function RegisterScreen() {
               style={[styles.input, errors.email ? styles.inputError : null]}
               placeholder="Enter your email"
               value={email}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setEmail(text);
                 if (errors.email) setErrors({ ...errors, email: '' });
               }}
@@ -205,7 +206,7 @@ export default function RegisterScreen() {
               style={[styles.input, errors.password ? styles.inputError : null]}
               placeholder="Enter your password"
               value={password}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setPassword(text);
                 if (errors.password) setErrors({ ...errors, password: '' });
               }}
@@ -228,7 +229,7 @@ export default function RegisterScreen() {
               ]}
               placeholder="Confirm your password"
               value={passwordConfirmation}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setPasswordConfirmation(text);
                 if (errors.password_confirmation)
                   setErrors({ ...errors, password_confirmation: '' });
@@ -239,7 +240,9 @@ export default function RegisterScreen() {
               editable={!loading}
             />
             {errors.password_confirmation ? (
-              <Text style={styles.errorText}>{errors.password_confirmation}</Text>
+              <Text style={styles.errorText}>
+                {errors.password_confirmation}
+              </Text>
             ) : null}
           </View>
 

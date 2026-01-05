@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -30,31 +36,31 @@ export default function LobbyScreen() {
     try {
       setLoadingMessage('Finding opponent...');
       setError(false);
-      
+
       // Simulate 2 seconds of "searching"
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       setLoadingMessage('Loading opponent details...');
-      
+
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       console.log('Fetching bot info from:', `${API_URL}/bot/${params.botId}`);
-      
+
       // Manual timeout implementation
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
+
       try {
         const response = await fetch(`${API_URL}/bot/${params.botId}`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
           },
-          signal: controller.signal
+          signal: controller.signal,
         });
 
         clearTimeout(timeoutId); // Clear timeout if request succeeds
-        
+
         const data = await response.json();
 
         console.log('Bot info response:', data);
@@ -79,9 +85,9 @@ export default function LobbyScreen() {
 
   const handleError = () => {
     retryCountRef.current += 1;
-    
+
     console.log('Retry attempt:', retryCountRef.current);
-    
+
     if (retryCountRef.current <= 2) {
       setLoadingMessage('Connection error. Retrying...');
       setTimeout(() => {
@@ -106,10 +112,10 @@ export default function LobbyScreen() {
       }, 800);
       return () => clearTimeout(timer);
     } else if (!isLoading && botInfo && countdown === 0) {
-        router.push({
-            pathname: '/game',
-            params: { gameId: params.gameId as string }
-        });
+      router.push({
+        pathname: '/game',
+        params: { gameId: params.gameId as string },
+      });
     }
   }, [isLoading, botInfo, countdown, params.gameId]);
 
@@ -119,9 +125,9 @@ export default function LobbyScreen() {
         <View style={styles.searchingContainer}>
           {!error && <ActivityIndicator size="large" color="white" />}
           <Text style={styles.searchingText}>{loadingMessage}</Text>
-          
+
           {error && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.goBackButton}
               onPress={handleGoBack}
             >
@@ -138,13 +144,15 @@ export default function LobbyScreen() {
 
           <View style={styles.botInfoContainer}>
             <Text style={styles.botName}>{botInfo?.name}</Text>
-            
+
             <View style={styles.botStatsContainer}>
               <View style={styles.statRow}>
                 <Text style={styles.statLabel}>Balance:</Text>
-                <Text style={styles.statValue}>${botInfo?.balance.toLocaleString()}</Text>
+                <Text style={styles.statValue}>
+                  ${botInfo?.balance.toLocaleString()}
+                </Text>
               </View>
-              
+
               <View style={styles.statRow}>
                 <Text style={styles.statLabel}>Trust Score:</Text>
                 <Text style={styles.statValue}>{botInfo?.trust_score}/100</Text>

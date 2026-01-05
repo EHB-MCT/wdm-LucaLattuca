@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-import {User} from '@/types/user'
+import { User } from '@/types/user';
 
 interface UserContextType {
   user: User | null;
@@ -40,7 +40,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       if (!token) {
         console.log('❌ [USER_CONTEXT] No token found');
         setUser(null);
@@ -54,8 +54,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
           'Content-Type': 'application/json',
         },
       });
@@ -71,7 +71,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       console.log('✅ [USER_CONTEXT] User data received:', {
         hasUser: !!data.user,
-        username: data.user?.username
+        username: data.user?.username,
       });
       setUser(data.user);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
@@ -83,13 +83,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       if (token) {
         await fetch(`${API_URL}/logout`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
           },
         });
       }
@@ -104,7 +104,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, setUser, refreshUser, logout }}>
+    <UserContext.Provider
+      value={{ user, loading, setUser, refreshUser, logout }}
+    >
       {children}
     </UserContext.Provider>
   );
