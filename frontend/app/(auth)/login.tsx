@@ -16,12 +16,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+/**
+ * LoginScreen - User authentication screen
+ * Handles login validation, API authentication, and navigation based on onboarding status
+ */
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
 
+  /**
+   * Validates email and password inputs
+   * Returns true if form is valid, false otherwise
+   */
   const validateForm = () => {
     let valid = true;
     const newErrors = { email: '', password: '' };
@@ -46,6 +54,10 @@ export default function LoginScreen() {
     return valid;
   };
 
+  /**
+   * Handles login submission
+   * Authenticates user, stores token, and navigates based on onboarding status
+   */
   const handleLogin = async () => {
     if (!validateForm()) {
       return;
@@ -59,7 +71,7 @@ export default function LoginScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
@@ -81,11 +93,10 @@ export default function LoginScreen() {
         return;
       }
 
-      // Save token and user data
       await AsyncStorage.setItem('auth_token', data.token);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-      // Check if onboarding is completed
+      // Navigate to onboarding or main app based on completion status
       if (!data.user.onboarding_completed) {
         router.replace('/(auth)/onboarding');
       } else {
@@ -93,7 +104,10 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', 'Network error. Please check your connection and try again.');
+      Alert.alert(
+        'Error',
+        'Network error. Please check your connection and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -120,7 +134,7 @@ export default function LoginScreen() {
               style={[styles.input, errors.email ? styles.inputError : null]}
               placeholder="Enter your email"
               value={email}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setEmail(text);
                 if (errors.email) setErrors({ ...errors, email: '' });
               }}
@@ -140,7 +154,7 @@ export default function LoginScreen() {
               style={[styles.input, errors.password ? styles.inputError : null]}
               placeholder="Enter your password"
               value={password}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setPassword(text);
                 if (errors.password) setErrors({ ...errors, password: '' });
               }}
@@ -266,4 +280,3 @@ const styles = StyleSheet.create({
 // Sources
 // Generated using Claude Caude
 // https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92
-

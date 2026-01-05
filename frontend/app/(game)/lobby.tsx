@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,6 +19,11 @@ interface BotInfo {
   trust_score: number;
 }
 
+/**
+ * LobbyScreen - Pre-game lobby showing matched opponent
+ * Displays bot info with countdown before game starts
+ * Includes retry logic for network failures
+ */
 export default function LobbyScreen() {
   const params = useLocalSearchParams();
   const [isLoading, setIsLoading] = useState(true);
@@ -26,35 +37,39 @@ export default function LobbyScreen() {
     fetchBotInfo();
   }, []);
 
+  /**
+   * Fetches bot opponent information with timeout and retry logic
+   * Simulates matchmaking delay for UX
+   */
   const fetchBotInfo = async () => {
     try {
       setLoadingMessage('Finding opponent...');
       setError(false);
-      
-      // Simulate 2 seconds of "searching"
+
+      // Simulate matchmaking search delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       setLoadingMessage('Loading opponent details...');
-      
+
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       console.log('Fetching bot info from:', `${API_URL}/bot/${params.botId}`);
-      
-      // Manual timeout implementation
+
+      // Implement 10-second timeout for fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       try {
         const response = await fetch(`${API_URL}/bot/${params.botId}`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
           },
-          signal: controller.signal
+          signal: controller.signal,
         });
 
-        clearTimeout(timeoutId); // Clear timeout if request succeeds
-        
+        clearTimeout(timeoutId);
+
         const data = await response.json();
 
         console.log('Bot info response:', data);
@@ -77,11 +92,14 @@ export default function LobbyScreen() {
     }
   };
 
+  /**
+   * Handles fetch errors with automatic retry (max 2 attempts)
+   */
   const handleError = () => {
     retryCountRef.current += 1;
-    
+
     console.log('Retry attempt:', retryCountRef.current);
-    
+
     if (retryCountRef.current <= 2) {
       setLoadingMessage('Connection error. Retrying...');
       setTimeout(() => {
@@ -98,7 +116,9 @@ export default function LobbyScreen() {
     router.back();
   };
 
-  // Countdown timer (8 seconds)
+  /**
+   * Countdown timer - navigates to game when reaches 0
+   */
   useEffect(() => {
     if (!isLoading && botInfo && countdown > 0) {
       const timer = setTimeout(() => {
@@ -106,10 +126,10 @@ export default function LobbyScreen() {
       }, 800);
       return () => clearTimeout(timer);
     } else if (!isLoading && botInfo && countdown === 0) {
-        router.push({
-            pathname: '/game',
-            params: { gameId: params.gameId as string }
-        });
+      router.push({
+        pathname: '/game',
+        params: { gameId: params.gameId as string },
+      });
     }
   }, [isLoading, botInfo, countdown, params.gameId]);
 
@@ -119,9 +139,9 @@ export default function LobbyScreen() {
         <View style={styles.searchingContainer}>
           {!error && <ActivityIndicator size="large" color="white" />}
           <Text style={styles.searchingText}>{loadingMessage}</Text>
-          
+
           {error && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.goBackButton}
               onPress={handleGoBack}
             >
@@ -131,20 +151,24 @@ export default function LobbyScreen() {
         </View>
       ) : (
         <View style={styles.matchFoundContainer}>
+          {/* Countdown display */}
           <View style={styles.countdownContainer}>
             <Text style={styles.countdownLabel}>Game starts in</Text>
             <Text style={styles.countdownNumber}>{countdown}</Text>
           </View>
 
+          {/* Opponent information */}
           <View style={styles.botInfoContainer}>
             <Text style={styles.botName}>{botInfo?.name}</Text>
-            
+
             <View style={styles.botStatsContainer}>
               <View style={styles.statRow}>
                 <Text style={styles.statLabel}>Balance:</Text>
-                <Text style={styles.statValue}>${botInfo?.balance.toLocaleString()}</Text>
+                <Text style={styles.statValue}>
+                  ${botInfo?.balance.toLocaleString()}
+                </Text>
               </View>
-              
+
               <View style={styles.statRow}>
                 <Text style={styles.statLabel}>Trust Score:</Text>
                 <Text style={styles.statValue}>{botInfo?.trust_score}/100</Text>

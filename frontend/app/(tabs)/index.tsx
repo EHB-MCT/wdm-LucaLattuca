@@ -1,12 +1,12 @@
-import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
-import { useEffect, useState } from "react";
-import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useUser } from "@/contexts/UserContext";
+import { Text, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser } from '@/contexts/UserContext';
 
 // Components
-import History from "@/components/history/history";
-import GameButton from "@/components/game/gameButton";
+import History from '@/components/history/history';
+import GameButton from '@/components/game/gameButton';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -37,7 +37,7 @@ export default function Index() {
       }
 
       const userData = JSON.parse(userString);
-      
+
       // If user hasn't completed onboarding, redirect
       if (!userData.onboarding_completed) {
         router.replace('/(auth)/onboarding');
@@ -58,7 +58,7 @@ export default function Index() {
     try {
       setIsBalanceLoading(true);
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       if (!token) {
         console.log('❌ [INDEX] No auth token found');
         return;
@@ -69,11 +69,11 @@ export default function Index() {
       console.log('📡 [INDEX] Fetching balance from:', fullUrl);
       console.log('🔑 [INDEX] Token exists:', !!token);
       console.log('🔑 [INDEX] Token preview:', token.substring(0, 20) + '...');
-      
+
       const response = await fetch(fullUrl, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
           'Content-Type': 'application/json',
         },
       });
@@ -90,9 +90,9 @@ export default function Index() {
       const data = await response.json();
       console.log('✅ [INDEX] User data received:', {
         hasUser: !!data.user,
-        balance: data.user?.balance
+        balance: data.user?.balance,
       });
-      
+
       if (data) {
         // Update user context
         await refreshUser();
@@ -127,7 +127,7 @@ export default function Index() {
           </Text>
         )}
       </View>
-      <History containerStyle={{ height: "40%" }} />
+      <History containerStyle={{ height: '40%' }} />
       <GameButton />
     </View>
   );
@@ -137,23 +137,23 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'black',
     flex: 1,
-    alignItems: "center",
-    justifyContent: "space-around",
+    alignItems: 'center',
+    justifyContent: 'space-around',
   },
   loadingContainer: {
-    justifyContent: "center"
+    justifyContent: 'center',
   },
   balanceLabel: {
     color: '#999',
     fontSize: 16,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 5,
   },
   balance: {
     color: 'white',
     fontSize: 30,
-    fontWeight: "bold",
-    alignSelf: "center"
+    fontWeight: 'bold',
+    alignSelf: 'center',
   },
   balanceLoader: {
     height: 44,

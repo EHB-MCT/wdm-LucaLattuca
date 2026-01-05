@@ -1,17 +1,26 @@
-import { Text, View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
-import { useState, useCallback } from "react";
-import { useUser } from "@/contexts/UserContext";
+import {
+  Text,
+  View,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { useUser } from '@/contexts/UserContext';
 
 // Components
-import History from "@/components/history/history";
-import Stats from "@/components/profile/stats";
+import History from '@/components/history/history';
+import Stats from '@/components/profile/stats';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ProfileScreen() {
- const { user, loading, refreshUser, logout } = useUser();
+  const { user, loading, refreshUser, logout } = useUser();
 
   // Load user data when screen comes into focus
   useFocusEffect(
@@ -22,14 +31,13 @@ export default function ProfileScreen() {
 
   // Helper function to determine player type based on trust score
   const getPlayerType = (trustScore: number) => {
-    if (trustScore >= 80) return "Highly Trustworthy";
-    if (trustScore >= 60) return "Reliable Player";
-    if (trustScore <= 60 || trustScore >=40) return "Neutral Player";
-    if (trustScore <= 40) return "Cautious Player";
-    if (trustScore <= 20) return "Unpredictable";
-    return "New Player";
+    if (trustScore >= 80) return 'Highly Trustworthy';
+    if (trustScore >= 60) return 'Reliable Player';
+    if (trustScore <= 60 || trustScore >= 40) return 'Neutral Player';
+    if (trustScore <= 40) return 'Cautious Player';
+    if (trustScore <= 20) return 'Unpredictable';
+    return 'New Player';
   };
-
 
   // Show loading spinner while fetching data
   if (loading) {
@@ -52,37 +60,30 @@ export default function ProfileScreen() {
     );
   }
 
-
-
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
-      ]
-    );
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: logout },
+    ]);
   };
-
-  
-  
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.userInfo}>
         <Text style={styles.username}>{user.username}</Text>
         <Image
-          source={require("../../assets/images/icon.png")}
-          style={styles.avatar}    
+          source={require('../../assets/images/icon.png')}
+          style={styles.avatar}
         />
         <Text style={styles.playerType}>{getPlayerType(user.trust_score)}</Text>
-        
+
         <Text style={styles.balance}>Balance</Text>
-        <Text style={styles.balance}>${parseFloat(user.balance.toString()).toFixed(2)}</Text>
+        <Text style={styles.balance}>
+          ${parseFloat(user.balance.toString()).toFixed(2)}
+        </Text>
       </View>
-      
-      <Stats/>
+
+      <Stats />
       <History scrollEnabled={false} />
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -95,49 +96,49 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'black',
-    flex: 1
+    flex: 1,
   },
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   textStyle: {
-    color:'white',
+    color: 'white',
   },
-  content:{
-    alignItems: "center",
+  content: {
+    alignItems: 'center',
     paddingBottom: 20,
   },
-  userInfo:{
-    alignItems: "center",
+  userInfo: {
+    alignItems: 'center',
     marginBottom: 10,
   },
-  username:{
+  username: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "white",
+    fontWeight: 'bold',
+    color: 'white',
     marginVertical: 10,
   },
-  avatar:{
+  avatar: {
     width: 100,
     height: 100,
     borderRadius: 100,
     marginBottom: 10,
   },
-  playerType:{
+  playerType: {
     fontSize: 18,
-    color: "white",
+    color: 'white',
     marginBottom: 5,
   },
   infoText: {
     fontSize: 14,
-    color: "#999",
+    color: '#999',
     marginBottom: 10,
   },
-  balance:{
+  balance: {
     fontSize: 29,
-    fontWeight: "bold",
-    color: "white",
+    fontWeight: 'bold',
+    color: 'white',
   },
   logoutButton: {
     backgroundColor: '#ff3b30',
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
     width: '90%',
     alignItems: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   logoutButtonText: {
     color: 'white',
