@@ -439,3 +439,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
 });
+
+// Sources
+// Onboarding created using Claude
+// https://claude.ai/share/a86909b9-6271-4878-afd6-981beba52b92

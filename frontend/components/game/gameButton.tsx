@@ -107,3 +107,7 @@ const styles = StyleSheet.create({
         top: 2,
     }
 });
+
+// Sources
+// GameButton updated using Claude (Sonnet 4.5)
+// https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
