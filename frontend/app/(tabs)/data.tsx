@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { 
     BarChart, 
-    LineChart, 
-    PieChart 
+    LineChart,
+    RadarChart  // ✅ Import RadarChart
 } from 'react-native-gifted-charts';
 import { gameDataApi } from '../../utils/gameDataApi';
 import { checkAuthStatus } from '../../utils/authDebug';
@@ -80,12 +80,6 @@ interface GameData {
     summary: Summary;
 }
 
-interface PieChartDataPoint {
-    value: number;
-    label: string;
-    color: string;
-}
-
 interface BarChartDataPoint {
     value: number;
     label?: string;
@@ -116,7 +110,6 @@ export default function DataScreen() {
             setLoading(true);
             setError(null);
             
-            // Debug: Check if we have auth token
             const authStatus = await checkAuthStatus();
             if (!authStatus?.hasToken) {
                 setError('Not authenticated. Please log in first.');
@@ -137,7 +130,6 @@ export default function DataScreen() {
                 errorMessage = err.message;
             }
             
-            // More specific error messages
             if (errorMessage.includes('401')) {
                 errorMessage = 'Authentication failed. Please log in again.';
             } else if (errorMessage.includes('Network Error')) {
@@ -193,38 +185,21 @@ export default function DataScreen() {
         );
     }
 
-    // Prepare OCEAN Model Pie Chart Data (Population Average)
-    const oceanPieData: PieChartDataPoint[] = data.ocean_model.population_average.map((item: OceanDataPoint, index: number) => ({
-        value: item.value,
-        label: item.label,
-        color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'][index],
+    // Prepare RadarChart data - just the values in order
+    const populationRadarData = data.ocean_model.population_average.map((item: OceanDataPoint) => item.value);
+    const populationRadarLabels = data.ocean_model.population_average.map((item: OceanDataPoint) => item.label);
+    
+    const userRadarData = data.ocean_model.user_data 
+        ? data.ocean_model.user_data.map((item: OceanDataPoint) => item.value)
+        : null;
+
+    // Prepare horizontal bar chart data for leaderboard (top 7)
+    const leaderboardBarData: BarChartDataPoint[] = data.leaderboard.map((player: LeaderboardPlayer) => ({
+        value: player.balance,
+        label: (player.username || 'Unknown').substring(0, 10),
+        frontColor: '#4ECDC4',
+        spacing: 2,
     }));
-
-    // Prepare User OCEAN Model Pie Chart Data
-    const userOceanPieData: PieChartDataPoint[] = data.ocean_model.user_data 
-        ? data.ocean_model.user_data.map((item: OceanDataPoint, index: number) => ({
-            value: item.value,
-            label: item.label,
-            color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'][index],
-        }))
-        : [];
-
-    // Prepare Leaderboard Grouped Bar Chart Data
-    const groupedLeaderboardData: BarChartDataPoint[] = [];
-    data.leaderboard.forEach((player: LeaderboardPlayer) => {
-        groupedLeaderboardData.push({
-            value: player.balance,
-            label: (player.username || 'Unknown').substring(0, 8),
-            spacing: 2,
-            labelWidth: 70,
-            labelTextStyle: { fontSize: 10 },
-            frontColor: '#4ECDC4',
-        });
-        groupedLeaderboardData.push({
-            value: player.trust_score,
-            frontColor: '#FF6B6B',
-        });
-    });
 
     // Prepare Choice Distribution Line Chart Data
     const investLineData: LineChartDataPoint[] = data.choice_distribution.map((round: ChoiceDistribution) => ({
@@ -313,93 +288,110 @@ export default function DataScreen() {
                 </View>
             )}
 
-            {/* Population OCEAN Model */}
+            {/* Population OCEAN Model - Radar Chart */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>🧠 Population OCEAN Model</Text>
                 <Text style={styles.chartDescription}>
                     Average personality traits across all players
                 </Text>
                 <View style={styles.chartContainer}>
-                    <PieChart
-                        data={oceanPieData}
-                        donut
-                        radius={120}
-                        innerRadius={60}
-                        centerLabelComponent={() => (
-                            <View>
-                                <Text style={styles.centerLabel}>Average</Text>
-                                <Text style={styles.centerSubLabel}>Population</Text>
-                            </View>
-                        )}
+                    <RadarChart
+                        data={populationRadarData}
+                        labels={populationRadarLabels}
+                        maxValue={100}
+                        chartSize={280}
+                        noOfSections={5}
+                        polygonConfig={{
+                            fill: '#4ECDC4',
+                            opacity: 0.3,
+                            stroke: '#4ECDC4',
+                            strokeWidth: 2,
+                            showDataValuesAsLabels: true,  // ✅ Show values at points
+                        }}
+                        gridConfig={{
+                            stroke: '#ddd',
+                            strokeWidth: 1,
+                        }}
+                        labelConfig={{
+                            fontSize: 12,
+                            stroke: '#333',
+                            fontWeight: 'bold',
+                        }}
+                        dataLabelsConfig={{  // ✅ Style for the values
+                            fontSize: 11,
+                            stroke: '#0e1818ff',
+                            fontWeight: 'bold',
+                        }}
+                        isAnimated
+                        animationDuration={800}
                     />
-                    <View style={styles.legendContainer}>
-                        {oceanPieData.map((item: PieChartDataPoint, index: number) => (
-                            <View key={index} style={styles.legendItem}>
-                                <View style={[styles.legendColor, { backgroundColor: item.color }]} />
-                                <Text style={styles.legendText}>
-                                    {item.label}: <Text style={styles.legendValue}>{item.value}</Text>
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
                 </View>
             </View>
 
-            {/* User OCEAN Model */}
-            {userOceanPieData.length > 0 && (
+            {/* User OCEAN Model - Radar Chart */}
+            {userRadarData && (
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>🎭 Your OCEAN Personality</Text>
                     <Text style={styles.chartDescription}>
                         Your unique personality profile
                     </Text>
                     <View style={styles.chartContainer}>
-                        <PieChart
-                            data={userOceanPieData}
-                            donut
-                            radius={120}
-                            innerRadius={60}
-                            centerLabelComponent={() => (
-                                <View>
-                                    <Text style={styles.centerLabel}>Your</Text>
-                                    <Text style={styles.centerSubLabel}>Profile</Text>
-                                </View>
-                            )}
+                        <RadarChart
+                            data={userRadarData}
+                            labels={populationRadarLabels}
+                            maxValue={100}
+                            chartSize={280}
+                            noOfSections={5}
+                            polygonConfig={{
+                                fill: '#FF6B6B',
+                                opacity: 0.3,
+                                stroke: '#FF6B6B',
+                                strokeWidth: 2,
+                                showDataValuesAsLabels: true,  // ✅ Show values at points
+                            }}
+                            gridConfig={{
+                                stroke: '#ddd',
+                                strokeWidth: 1,
+                            }}
+                            labelConfig={{
+                                fontSize: 12,
+                                stroke: '#333',
+                                fontWeight: 'bold',
+                            }}
+                            dataLabelsConfig={{  // ✅ Style for the values
+                                fontSize: 11,
+                                stroke: '#2b0f0fff',
+                                fontWeight: 'bold',
+                            }}
+                            isAnimated
+                            animationDuration={800}
                         />
-                        <View style={styles.legendContainer}>
-                            {userOceanPieData.map((item: PieChartDataPoint, index: number) => (
-                                <View key={index} style={styles.legendItem}>
-                                    <View style={[styles.legendColor, { backgroundColor: item.color }]} />
-                                    <Text style={styles.legendText}>
-                                        {item.label}: <Text style={styles.legendValue}>{item.value}</Text>
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
                     </View>
                 </View>
             )}
 
-            {/* Leaderboard */}
+            {/* Leaderboard - Horizontal Bar Chart (Top 7) */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🏆 Top 10 Players</Text>
+                <Text style={styles.sectionTitle}>🏆 Top 7 Richest Players</Text>
                 <Text style={styles.chartDescription}>
-                    💰 Blue bars = Balance | ❤️ Red bars = Trust Score
+                    Players ranked by balance
                 </Text>
                 <View style={styles.chartContainer}>
                     <BarChart
-                        data={groupedLeaderboardData}
-                        barWidth={16}
-                        spacing={4}
+                        data={leaderboardBarData}
+                        barWidth={30}
+                        spacing={20}
+                        horizontal
                         hideRules
-                        xAxisThickness={1}
-                        yAxisThickness={1}
-                        yAxisTextStyle={{ fontSize: 10 }}
+                        xAxisThickness={0}
+                        yAxisThickness={0}
+                        yAxisTextStyle={{ fontSize: 11 }}
                         noOfSections={4}
-                        maxValue={Math.max(
-                            ...data.leaderboard.map((p: LeaderboardPlayer) => Math.max(p.balance, p.trust_score))
-                        )}
-                        height={220}
-                        width={width - 60}
+                        maxValue={Math.max(...data.leaderboard.map((p: LeaderboardPlayer) => p.balance))}
+                        height={leaderboardBarData.length * 50}
+                        width={width - 100}
+                        showValuesAsTopLabel
+                        topLabelTextStyle={{ fontSize: 10, color: '#666' }}
                     />
                 </View>
             </View>
@@ -487,23 +479,31 @@ export default function DataScreen() {
             {/* Trust vs Investment Info */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>🤝 Trust vs Investment</Text>
-                <Text style={styles.note}>
-                    📌 Scatter plot showing correlation between opponent trust scores and investment amounts.
-                    Data points: {data.trust_vs_investment.length}
-                </Text>
-                <View style={styles.dataPreview}>
-                    <Text style={styles.dataTitle}>Sample Data Points:</Text>
-                    {data.trust_vs_investment.slice(0, 5).map((point: TrustInvestmentPoint, index: number) => (
-                        <Text key={index} style={styles.dataText}>
-                            • Trust: {point.x} → Investment: ${point.y}
+                {data.trust_vs_investment.length > 0 ? (
+                    <>
+                        <Text style={styles.note}>
+                            📌 Showing correlation between opponent trust scores and investment amounts.
+                            Data points: {data.trust_vs_investment.length}
                         </Text>
-                    ))}
-                    {data.trust_vs_investment.length > 5 && (
-                        <Text style={styles.dataText}>
-                            ... and {data.trust_vs_investment.length - 5} more points
-                        </Text>
-                    )}
-                </View>
+                        <View style={styles.dataPreview}>
+                            <Text style={styles.dataTitle}>Sample Data Points:</Text>
+                            {data.trust_vs_investment.slice(0, 5).map((point: TrustInvestmentPoint, index: number) => (
+                                <Text key={index} style={styles.dataText}>
+                                    • Trust: {point.x} → Investment: ${point.y}
+                                </Text>
+                            ))}
+                            {data.trust_vs_investment.length > 5 && (
+                                <Text style={styles.dataText}>
+                                    ... and {data.trust_vs_investment.length - 5} more points
+                                </Text>
+                            )}
+                        </View>
+                    </>
+                ) : (
+                    <Text style={styles.note}>
+                        ⚠️ No data available. This requires games where both players invested.
+                    </Text>
+                )}
             </View>
         </ScrollView>
     );
@@ -530,11 +530,6 @@ const styles = StyleSheet.create({
         color: '#ff4444',
         textAlign: 'center',
         marginBottom: 15,
-    },
-    retryText: {
-        fontSize: 16,
-        color: '#0066cc',
-        textDecorationLine: 'underline',
     },
     retryButton: {
         backgroundColor: '#0066cc',
@@ -606,16 +601,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
     },
-    centerLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    centerSubLabel: {
-        fontSize: 12,
-        color: '#666',
-        textAlign: 'center',
-    },
     legendContainer: {
         marginTop: 20,
         width: '100%',
@@ -634,9 +619,6 @@ const styles = StyleSheet.create({
     legendText: {
         fontSize: 14,
         color: '#333',
-    },
-    legendValue: {
-        fontWeight: 'bold',
     },
     note: {
         fontSize: 12,
@@ -670,4 +652,4 @@ const styles = StyleSheet.create({
 
 // Sources
 // Created using Claude (Sonnet 4.5)
-// https://claude.ai/share/7dd11964-5d7e-4736-a272-801a7f3db088
+// Updated with actual RadarChart component

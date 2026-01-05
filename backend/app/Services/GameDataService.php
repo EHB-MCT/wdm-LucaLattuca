@@ -54,14 +54,15 @@ class GameDataService
     }
 
     /**
-     * Get leaderboard data for grouped bar chart
-     * Returns top 10 richest players with their balance and trust scores
+     * Get leaderboard data for horizontal bar chart
+     * Returns top 7 richest players with their balance and trust scores
      */
     public function getLeaderboardData(): array
     {
         $topPlayers = User::where('onboarding_completed', true)
+            ->whereNotNull('username')
             ->orderBy('balance', 'desc')
-            ->limit(10)
+            ->limit(7)  // Changed from 10 to 7
             ->get(['username', 'balance', 'trust_score']);
 
         $data = [];
@@ -82,7 +83,7 @@ class GameDataService
      */
     public function getTrustVsInvestmentData(): array
     {
-        // Get all rounds with both players' data
+        // Get all rounds where BOTH players invested (not null)
         $data = DB::table('rounds')
             ->join('games', 'rounds.game_id', '=', 'games.id')
             ->join('game_players as gp1', function($join) {
@@ -97,6 +98,10 @@ class GameDataService
             ->join('users as u2', 'gp2.user_id', '=', 'u2.id')
             ->whereNotNull('gp1.user_id')
             ->whereNotNull('gp2.user_id')
+            ->whereNotNull('rounds.player1_invested')  // Added: ensure investments exist
+            ->whereNotNull('rounds.player2_invested')  // Added: ensure investments exist
+            ->where('rounds.player1_invested', '>', 0)  // Added: ensure positive investments
+            ->where('rounds.player2_invested', '>', 0)  // Added: ensure positive investments
             ->select(
                 'u2.trust_score as opponent_trust',
                 'rounds.player1_invested as investment',
@@ -134,42 +139,42 @@ class GameDataService
      */
     public function getChoiceDistributionByRound(): array
     {
-    $distribution = [];
+        $distribution = [];
 
-    for ($roundNumber = 1; $roundNumber <= 3; $roundNumber++) {
-        // Use SINGLE QUOTES for string values in PostgreSQL!
-        $stats = Round::join('games', 'rounds.game_id', '=', 'games.id')
-            ->join('game_players', 'games.id', '=', 'game_players.game_id')
-            ->join('users', 'game_players.user_id', '=', 'users.id')
-            ->where('rounds.round_number', $roundNumber)
-            ->whereNotNull('game_players.user_id')
-            ->selectRaw("
-                SUM(CASE 
-                    WHEN (game_players.player_number = 1 AND rounds.player1_choice = 'invest') 
-                      OR (game_players.player_number = 2 AND rounds.player2_choice = 'invest') 
-                    THEN 1 ELSE 0 END) as invest_count,
-                SUM(CASE 
-                    WHEN (game_players.player_number = 1 AND rounds.player1_choice = 'cash_out') 
-                      OR (game_players.player_number = 2 AND rounds.player2_choice = 'cash_out') 
-                    THEN 1 ELSE 0 END) as cash_out_count,
-                COUNT(*) as total_count
-            ")
-            ->first();
+        for ($roundNumber = 1; $roundNumber <= 3; $roundNumber++) {
+            // Use SINGLE QUOTES for string values in PostgreSQL!
+            $stats = Round::join('games', 'rounds.game_id', '=', 'games.id')
+                ->join('game_players', 'games.id', '=', 'game_players.game_id')
+                ->join('users', 'game_players.user_id', '=', 'users.id')
+                ->where('rounds.round_number', $roundNumber)
+                ->whereNotNull('game_players.user_id')
+                ->selectRaw("
+                    SUM(CASE 
+                        WHEN (game_players.player_number = 1 AND rounds.player1_choice = 'invest') 
+                          OR (game_players.player_number = 2 AND rounds.player2_choice = 'invest') 
+                        THEN 1 ELSE 0 END) as invest_count,
+                    SUM(CASE 
+                        WHEN (game_players.player_number = 1 AND rounds.player1_choice = 'cash_out') 
+                          OR (game_players.player_number = 2 AND rounds.player2_choice = 'cash_out') 
+                        THEN 1 ELSE 0 END) as cash_out_count,
+                    COUNT(*) as total_count
+                ")
+                ->first();
 
-        $totalCount = $stats->total_count ?? 0;
-        $investCount = $stats->invest_count ?? 0;
-        $cashOutCount = $stats->cash_out_count ?? 0;
+            $totalCount = $stats->total_count ?? 0;
+            $investCount = $stats->invest_count ?? 0;
+            $cashOutCount = $stats->cash_out_count ?? 0;
 
-        $distribution[] = [
-            'round' => $roundNumber,
-            'invest_percentage' => $totalCount > 0 ? round(($investCount / $totalCount) * 100, 1) : 0,
-            'cash_out_percentage' => $totalCount > 0 ? round(($cashOutCount / $totalCount) * 100, 1) : 0,
-            'invest_count' => $investCount,
-            'cash_out_count' => $cashOutCount,
-        ];
-    }
+            $distribution[] = [
+                'round' => $roundNumber,
+                'invest_percentage' => $totalCount > 0 ? round(($investCount / $totalCount) * 100, 1) : 0,
+                'cash_out_percentage' => $totalCount > 0 ? round(($cashOutCount / $totalCount) * 100, 1) : 0,
+                'invest_count' => $investCount,
+                'cash_out_count' => $cashOutCount,
+            ];
+        }
 
-    return $distribution;
+        return $distribution;
     }
 
     /**
