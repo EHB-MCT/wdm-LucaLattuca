@@ -15,4 +15,12 @@ their opponent also decided to invest more.
 ## shortcomings
 
 There's some issues with the way that data is structured, as well as how the game processes the data.
-alot more data could have been gathered on the game, but it's complexity made it difficult to analyse and troubleshoot everything.
+A lot more data could have been gathered on the game, but it's complexity made it difficult to analyse and troubleshoot the code.
+As the project grew in complecity, so did the data it managed.
+
+Besides gathering data, less time was spent on the styling and design of the application. This makes it hard for users to enjoy the game.
+
+## what did i learn
+
+while most of the project was coded with the help of Artificial Intelligence, i learned how to develop a mobile application
+using React native and expo Go. Besides front-end development, i learned alot about what it takes to create an extensive backend for an application that uses alot of data. I learned more about code structures, conventions, networking, data flow...
