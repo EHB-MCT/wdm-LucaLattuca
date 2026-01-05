@@ -8,9 +8,14 @@ import {
 import { useUser } from '@/contexts/UserContext';
 import { RadarChart } from 'react-native-gifted-charts';
 
+/**
+ * Stats component - Displays user profile info and OCEAN personality traits
+ * Shows demographic info, trust score, and radar chart visualization
+ */
 export default function Stats() {
   const { user, loading, refreshUser } = useUser();
 
+  // OCEAN personality model data for radar chart
   const radarData = [
     user?.openness ?? 0,
     user?.conscientiousness ?? 0,
@@ -27,7 +32,7 @@ export default function Stats() {
     'Neuroticism',
   ];
 
-  // Show loading spinner while fetching data
+  // Loading state
   if (loading) {
     return (
       <View style={[styles.stats]}>
@@ -36,7 +41,7 @@ export default function Stats() {
     );
   }
 
-  // Show error if user data couldn't be loaded
+  // Error state
   if (!user) {
     return (
       <View style={styles.stats}>
@@ -50,6 +55,7 @@ export default function Stats() {
 
   return (
     <View style={styles.stats}>
+      {/* Left column - User info and personality traits */}
       <View style={styles.info}>
         <Text style={styles.header}>Info</Text>
         <View>
@@ -79,6 +85,7 @@ export default function Stats() {
             <Text style={styles.value}>{user.trust_score}</Text>
           </View>
 
+          {/* OCEAN personality traits */}
           <View>
             <View style={styles.row}>
               <Text style={styles.label}>Openness</Text>
@@ -103,10 +110,10 @@ export default function Stats() {
           </View>
         </View>
       </View>
+
+      {/* Right column - Visualization graphs */}
       <View style={styles.graphs}>
-        <View style={styles.trustScoreGraph}>
-          {/* Trust score graph placeholder */}
-        </View>
+        <View style={styles.trustScoreGraph}></View>
         <View style={styles.oceanGraph}>
           <RadarChart
             data={radarData}
@@ -143,6 +150,7 @@ export default function Stats() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   header: {
     fontSize: 24,
@@ -163,7 +171,6 @@ const styles = StyleSheet.create({
     width: '50%',
     flexDirection: 'column',
   },
-
   row: {
     flexDirection: 'row',
     marginBottom: 5,
@@ -174,7 +181,6 @@ const styles = StyleSheet.create({
   value: {},
   graphs: {
     width: '50%',
-
     justifyContent: 'flex-end',
   },
   trustScore: {

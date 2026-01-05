@@ -1,4 +1,3 @@
-// app/(auth)/register.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -17,6 +16,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+/**
+ * RegisterScreen - New user registration
+ * Handles account creation, auto-login, and navigation to onboarding
+ */
 export default function RegisterScreen() {
   console.log(API_URL);
   const [name, setName] = useState('');
@@ -31,6 +34,10 @@ export default function RegisterScreen() {
     password_confirmation: '',
   });
 
+  /**
+   * Validates all registration form inputs
+   * Returns true if form is valid, false otherwise
+   */
   const validateForm = () => {
     let valid = true;
     const newErrors = {
@@ -76,6 +83,10 @@ export default function RegisterScreen() {
     return valid;
   };
 
+  /**
+   * Handles registration submission
+   * Creates account, auto-logs in user, and navigates to onboarding
+   */
   const handleRegister = async () => {
     if (!validateForm()) {
       return;
@@ -129,11 +140,11 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Save token and user data (auto-login after registration)
+      // Auto-login: save token and user data
       await AsyncStorage.setItem('auth_token', data.token);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-      // Since onboarding_completed is false, redirect to onboarding
+      // New users always need onboarding
       router.replace('/(auth)/onboarding');
     } catch (error) {
       console.error('Registration error:', error);

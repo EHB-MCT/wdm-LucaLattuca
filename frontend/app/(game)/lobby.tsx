@@ -19,6 +19,11 @@ interface BotInfo {
   trust_score: number;
 }
 
+/**
+ * LobbyScreen - Pre-game lobby showing matched opponent
+ * Displays bot info with countdown before game starts
+ * Includes retry logic for network failures
+ */
 export default function LobbyScreen() {
   const params = useLocalSearchParams();
   const [isLoading, setIsLoading] = useState(true);
@@ -32,12 +37,16 @@ export default function LobbyScreen() {
     fetchBotInfo();
   }, []);
 
+  /**
+   * Fetches bot opponent information with timeout and retry logic
+   * Simulates matchmaking delay for UX
+   */
   const fetchBotInfo = async () => {
     try {
       setLoadingMessage('Finding opponent...');
       setError(false);
 
-      // Simulate 2 seconds of "searching"
+      // Simulate matchmaking search delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       setLoadingMessage('Loading opponent details...');
@@ -46,9 +55,9 @@ export default function LobbyScreen() {
 
       console.log('Fetching bot info from:', `${API_URL}/bot/${params.botId}`);
 
-      // Manual timeout implementation
+      // Implement 10-second timeout for fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       try {
         const response = await fetch(`${API_URL}/bot/${params.botId}`, {
@@ -59,7 +68,7 @@ export default function LobbyScreen() {
           signal: controller.signal,
         });
 
-        clearTimeout(timeoutId); // Clear timeout if request succeeds
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
@@ -83,6 +92,9 @@ export default function LobbyScreen() {
     }
   };
 
+  /**
+   * Handles fetch errors with automatic retry (max 2 attempts)
+   */
   const handleError = () => {
     retryCountRef.current += 1;
 
@@ -104,7 +116,9 @@ export default function LobbyScreen() {
     router.back();
   };
 
-  // Countdown timer (8 seconds)
+  /**
+   * Countdown timer - navigates to game when reaches 0
+   */
   useEffect(() => {
     if (!isLoading && botInfo && countdown > 0) {
       const timer = setTimeout(() => {
@@ -137,11 +151,13 @@ export default function LobbyScreen() {
         </View>
       ) : (
         <View style={styles.matchFoundContainer}>
+          {/* Countdown display */}
           <View style={styles.countdownContainer}>
             <Text style={styles.countdownLabel}>Game starts in</Text>
             <Text style={styles.countdownNumber}>{countdown}</Text>
           </View>
 
+          {/* Opponent information */}
           <View style={styles.botInfoContainer}>
             <Text style={styles.botName}>{botInfo?.name}</Text>
 

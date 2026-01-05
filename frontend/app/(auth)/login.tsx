@@ -16,12 +16,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+/**
+ * LoginScreen - User authentication screen
+ * Handles login validation, API authentication, and navigation based on onboarding status
+ */
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
 
+  /**
+   * Validates email and password inputs
+   * Returns true if form is valid, false otherwise
+   */
   const validateForm = () => {
     let valid = true;
     const newErrors = { email: '', password: '' };
@@ -46,6 +54,10 @@ export default function LoginScreen() {
     return valid;
   };
 
+  /**
+   * Handles login submission
+   * Authenticates user, stores token, and navigates based on onboarding status
+   */
   const handleLogin = async () => {
     if (!validateForm()) {
       return;
@@ -81,11 +93,10 @@ export default function LoginScreen() {
         return;
       }
 
-      // Save token and user data
       await AsyncStorage.setItem('auth_token', data.token);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-      // Check if onboarding is completed
+      // Navigate to onboarding or main app based on completion status
       if (!data.user.onboarding_completed) {
         router.replace('/(auth)/onboarding');
       } else {

@@ -6,16 +6,26 @@ import { useUser } from '@/contexts/UserContext';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
+/**
+ * GameButton component - Main play button that initiates matchmaking
+ * Handles queue joining and navigation to game lobby
+ */
 export default function GameButton() {
   const [isJoining, setIsJoining] = useState(false);
   const { user } = useUser();
 
+  /**
+   * Joins the game queue and navigates to lobby on success
+   * Validates user balance before joining
+   */
   async function joinQueue() {
+    // Validate user exists
     if (!user) {
       console.error('User not found');
       return;
     }
 
+    // Check minimum balance requirement ($100)
     if (user.balance < 100) {
       console.error('Insufficient balance');
       return;
@@ -42,7 +52,7 @@ export default function GameButton() {
       console.log('Queue join response:', data);
 
       if (response.ok && data.success) {
-        // Navigate to lobby immediately - lobby will handle loading/errors
+        // Navigate to lobby with game and bot details
         router.push({
           pathname: '/(game)/lobby',
           params: {
@@ -59,8 +69,6 @@ export default function GameButton() {
       }
     } catch (error) {
       console.error('Failed to join queue:', error);
-      // Even if there's an error, we could still navigate to lobby
-      // and let lobby handle the connection issues
     } finally {
       setIsJoining(false);
     }
@@ -107,4 +115,4 @@ const styles = StyleSheet.create({
 
 // Sources
 // GameButton updated using Claude (Sonnet 4.5)
-// https://claude.ai/share/4570ac86-c7f2-452d-93e4-b72281a330ba
+// https://claude.ai/share/4570ac86-c7f2-452d-93e4b72281a330ba

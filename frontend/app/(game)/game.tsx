@@ -22,55 +22,50 @@ import ValuePicker from '../../components/game/valuePicker';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
+/**
+ * GameScreen - Main gameplay interface for trust investment game
+ * Manages 3-round games where players choose to invest or cash out
+ * Tracks decision metrics for behavioral analysis
+ */
 export default function GameScreen() {
   const params = useLocalSearchParams();
   const { user } = useUser();
   const gameId = params.gameId;
 
-  // Game state
+  // Game state from API
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [roundState, setRoundState] = useState<RoundState | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
-  const [opponentState, setOpponentState] = useState<OpponentState | null>(
-    null
-  );
+  const [opponentState, setOpponentState] = useState<OpponentState | null>(null);
 
   // UI state
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(30);
-  const [selectedChoice, setSelectedChoice] = useState<
-    'invest' | 'cash_out' | null
-  >(null);
+  const [selectedChoice, setSelectedChoice] = useState<'invest' | 'cash_out' | null>(null);
   const [investmentAmount, setInvestmentAmount] = useState<number>(100);
-  const [displayPot, setDisplayPot] = useState(0); // Pot shown on screen (updated after rounds)
+  const [displayPot, setDisplayPot] = useState(0);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [currentBotBalance, setCurrentBotBalance] = useState(10000);
 
-  // Tracking state
+  // Player behavior tracking for research analysis
   const [choiceStartTime, setChoiceStartTime] = useState<number>(Date.now());
   const [timeOnInvest, setTimeOnInvest] = useState(0);
   const [timeOnCashOut, setTimeOnCashOut] = useState(0);
   const [numberOfToggles, setNumberOfToggles] = useState(0);
-  const [initialChoice, setInitialChoice] = useState<
-    'invest' | 'cash_out' | null
-  >(null);
+  const [initialChoice, setInitialChoice] = useState<'invest' | 'cash_out' | null>(null);
 
-  // Round results modal state
+  // Round results modal
   const [showRoundResults, setShowRoundResults] = useState(false);
-  const [roundResults, setRoundResults] = useState<RoundResultsState | null>(
-    null
-  );
+  const [roundResults, setRoundResults] = useState<RoundResultsState | null>(null);
 
+  // Refs for accessing latest values in async callbacks
   const timerIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
   const choiceTimerRef = useRef<NodeJS.Timeout | number | null>(null);
-
   const investmentAmountRef = useRef<number>(100);
   const selectedChoiceRef = useRef<'invest' | 'cash_out' | null>('invest');
-
   const roundIdRef = useRef<number | null>(null);
 
-  // Fetch game state on mount
   useEffect(() => {
     if (gameId) {
       fetchGameState();
@@ -88,15 +83,16 @@ export default function GameScreen() {
     };
   }, [gameId]);
 
+  /**
+   * Fetches current game state and initializes round
+   * Starts backend round timer and countdown
+   */
   const fetchGameState = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       const token = await AsyncStorage.getItem('auth_token');
-
-      console.log('🎮 Fetching game state from:', `${API_URL}/game/${gameId}`);
-
       const response = await fetch(`${API_URL}/game/${gameId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -106,44 +102,28 @@ export default function GameScreen() {
 
       const data = await response.json();
 
-      console.log('📦 Game state response:', data);
-
       if (response.ok && data.success) {
-        console.log('✅ Setting game state');
-        console.log('🎯 Current round ID:', data.current_round.id);
-        console.log('🎯 Round number:', data.current_round.round_number);
-
-        // Store round ID in ref so it's accessible in callbacks
         roundIdRef.current = data.current_round.id;
 
-        // Set state FIRST with the round data we received
         setGameState(data.game);
         setRoundState(data.current_round);
         setPlayerState(data.player);
         setOpponentState(data.opponent);
         setCurrentBalance(data.user_balance);
 
-        // Set bot balance - start at 10000, then subtract based on rounds played
+        // Calculate bot balance based on rounds played
         if (data.opponent.is_bot) {
           const botBaseBalance = data.opponent.balance || 10000;
-          // Calculate bot's current balance by subtracting previous round investments
           const roundsPlayed = data.game.total_rounds || 0;
-          const botBalance = botBaseBalance - roundsPlayed * 100; // Each round bot invests $100
+          const botBalance = botBaseBalance - roundsPlayed * 100;
           setCurrentBotBalance(Math.max(0, botBalance));
-          console.log('🤖 Bot balance set to:', botBalance);
         }
 
-        // AUTO-SELECT INVEST at start of each round
+        // Auto-select invest at round start
         setSelectedChoice('invest');
         setInitialChoice('invest');
-        console.log('✅ Auto-selected INVEST for new round');
 
-        // Verify it was set
-        console.log('✓ Round state should be set now');
-        console.log('✓ Round ID stored in ref:', roundIdRef.current);
-
-        // Start the round on backend SECOND
-        console.log('▶️ Starting round:', data.current_round.id);
+        // Start round on backend
         const startResponse = await fetch(
           `${API_URL}/game/${gameId}/round/${data.current_round.id}/start`,
           {
@@ -156,38 +136,25 @@ export default function GameScreen() {
         );
 
         const startData = await startResponse.json();
-        console.log(
-          '⏱️ Round started, time remaining:',
-          startData.time_remaining
-        );
-
-        // Update time remaining from backend
         setTimeRemaining(startData.time_remaining || 30);
 
-        // Set pot display - Round all values
+        // Set initial pot display
         const potValue =
           data.current_round.round_number === 1
-            ? 200 // Round 1 starts with base $200 pot
+            ? 200
             : Math.round(data.current_round.pot_before_bonus);
 
         setDisplayPot(potValue);
-        console.log('💰 Pot set to:', potValue);
-        console.log('💵 User balance:', data.user_balance); // ADD THIS LOG
-
         setIsLoading(false);
 
-        // Clear any existing timer before starting new one
+        // Clear existing timer and start new countdown
         if (timerIntervalRef.current) {
-          console.log('⏰ Clearing existing timer');
           clearInterval(timerIntervalRef.current);
           timerIntervalRef.current = null;
         }
 
-        // Start new timer
-        console.log('⏰ Starting countdown timer');
         startTimer();
       } else if (data.game_completed) {
-        console.log('🏁 Game completed, returning to home');
         router.push('/');
         return;
       } else {
@@ -195,12 +162,15 @@ export default function GameScreen() {
         setIsLoading(false);
       }
     } catch (fetchError) {
-      console.error('❌ Failed to fetch game state:', fetchError);
+      console.error('Failed to fetch game state:', fetchError);
       setError('Connection error. Please try again.');
       setIsLoading(false);
     }
   };
 
+  /**
+   * Starts 30-second countdown timer for round
+   */
   const startTimer = () => {
     timerIntervalRef.current = setInterval(() => {
       setTimeRemaining(prev => {
@@ -213,22 +183,17 @@ export default function GameScreen() {
     }, 1000);
   };
 
-  // Track time spent on each choice
+  /**
+   * Tracks time spent hovering on each choice option
+   * Used for behavioral analysis
+   */
   useEffect(() => {
     if (selectedChoice) {
       choiceTimerRef.current = setInterval(() => {
         if (selectedChoice === 'invest') {
-          setTimeOnInvest(prev => {
-            const newValue = prev + 0.1;
-            console.log('Time on invest:', newValue.toFixed(1));
-            return newValue;
-          });
+          setTimeOnInvest(prev => prev + 0.1);
         } else {
-          setTimeOnCashOut(prev => {
-            const newValue = prev + 0.1;
-            console.log('Time on cash out:', newValue.toFixed(1));
-            return newValue;
-          });
+          setTimeOnCashOut(prev => prev + 0.1);
         }
       }, 100);
     }
@@ -238,22 +203,17 @@ export default function GameScreen() {
     };
   }, [selectedChoice]);
 
+  /**
+   * Handles player toggling between invest/cash out choices
+   * Tracks initial choice and number of toggles for analysis
+   */
   const handleChoiceToggle = (choice: 'invest' | 'cash_out') => {
-    console.log('🔄 Choice toggled to:', choice);
-
-    // Track initial choice
     if (!initialChoice) {
       setInitialChoice(choice);
-      console.log('✅ Initial choice set:', choice);
     }
 
-    // Count toggles
     if (selectedChoice && selectedChoice !== choice) {
-      setNumberOfToggles(prev => {
-        const newCount = prev + 1;
-        console.log('🔢 Toggle count:', newCount);
-        return newCount;
-      });
+      setNumberOfToggles(prev => prev + 1);
     }
 
     setSelectedChoice(choice);
@@ -261,21 +221,18 @@ export default function GameScreen() {
     setChoiceStartTime(Date.now());
   };
 
+  /**
+   * Handles round completion - submits choice and displays results
+   * Manages round transitions and game completion
+   */
   const handleRoundEnd = async () => {
-    console.log('⏰ Round ended');
-    console.log('📊 Current roundState:', roundState);
-    console.log('📊 Round ID from ref:', roundIdRef.current);
-    console.log('📊 Game ID:', gameId);
-
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     if (choiceTimerRef.current) clearInterval(choiceTimerRef.current);
 
-    // Use the ref instead of state
     const currentRoundId = roundIdRef.current;
 
-    // Verify we have the round ID
     if (!currentRoundId) {
-      console.error('❌ No round ID available in ref!');
+      console.error('No round ID available');
       setError('Round data missing. Please restart the game.');
       return;
     }
@@ -284,13 +241,7 @@ export default function GameScreen() {
     const parsedInvestment = investmentAmountRef.current || 100;
     const finalInvestment = finalChoice === 'invest' ? parsedInvestment : 0;
 
-    console.log('💵 Investment amount:', {
-      raw: investmentAmountRef.current,
-      parsed: parsedInvestment,
-      final: finalInvestment,
-      choice: finalChoice,
-    });
-
+    // Compile decision data with behavioral metrics
     const decisionData = {
       choice: finalChoice,
       investment_amount: finalInvestment,
@@ -301,13 +252,6 @@ export default function GameScreen() {
       initial_choice: initialChoice || finalChoice,
     };
 
-    console.log('🔒 Auto-locking choice:', decisionData);
-    console.log(
-      '📤 Submitting to URL:',
-      `${API_URL}/game/${gameId}/round/${currentRoundId}/choice`
-    );
-
-    // Submit choice to backend
     try {
       const token = await AsyncStorage.getItem('auth_token');
       const response = await fetch(
@@ -324,10 +268,8 @@ export default function GameScreen() {
       );
 
       const resultData = await response.json();
-      console.log('📥 Round result:', resultData);
 
       if (resultData.success && resultData.round_results) {
-        // Use real data from backend
         setRoundResults({
           userChoice: resultData.round_results.user_choice,
           userInvestment: resultData.round_results.user_investment,
@@ -342,42 +284,24 @@ export default function GameScreen() {
           nextRoundNumber: resultData.round_results.next_round_number,
         });
 
-        // Update bot balance if opponent is bot
+        // Update bot balance after round
         if (opponentState?.is_bot) {
-          const botInvestment =
-            resultData.round_results.opponent_investment || 0;
+          const botInvestment = resultData.round_results.opponent_investment || 0;
           const botPayout = resultData.round_results.opponent_payout || 0;
           setCurrentBotBalance(prev => prev - botInvestment + botPayout);
-          console.log('🤖 Bot balance updated:', {
-            previous: currentBotBalance,
-            investment: botInvestment,
-            payout: botPayout,
-            new: currentBotBalance - botInvestment + botPayout,
-          });
         }
 
-        console.log('✅ Round results set, showing modal');
-
-        // Show modal
         setShowRoundResults(true);
 
-        // modal timer from game config
+        // Display results for configured time
         const displayTime = resultData.round_results.display_time_ms || 5000;
         await new Promise(resolve => setTimeout(resolve, displayTime));
 
-        console.log('⏭️ Hiding modal, checking for next round');
-
-        // Hide modal
         setShowRoundResults(false);
 
-        // Check if game continues
+        // Continue to next round or end game
         if (resultData.round_results?.next_round_number) {
-          console.log(
-            '🔄 Moving to next round:',
-            resultData.round_results.next_round_number
-          );
-
-          // Reset tracking state
+          // Reset tracking state for next round
           setSelectedChoice(null);
           selectedChoiceRef.current = 'invest';
           setInvestmentAmount(100);
@@ -387,19 +311,14 @@ export default function GameScreen() {
           setNumberOfToggles(0);
           setInitialChoice(null);
 
-          // Fetch next round
           await fetchGameState();
         } else {
-          console.log('🏁 Game ended, returning to home');
-          // Game ended
           router.push('/');
         }
       } else {
-        console.error(
-          '❌ Backend error:',
-          resultData.message || resultData.error
-        );
-        // Still show modal with partial data
+        console.error('Backend error:', resultData.message || resultData.error);
+        
+        // Show fallback results on error
         setRoundResults({
           userChoice: finalChoice,
           userInvestment: finalInvestment,
@@ -421,7 +340,6 @@ export default function GameScreen() {
         await new Promise(resolve => setTimeout(resolve, 3000));
         setShowRoundResults(false);
 
-        // Try to continue anyway
         if (roundState && roundState.round_number < 3) {
           await fetchGameState();
         } else {
@@ -429,8 +347,7 @@ export default function GameScreen() {
         }
       }
     } catch (error) {
-      console.error('❌ Failed to submit choice:', error);
-      // Show error but still try to continue
+      console.error('Failed to submit choice:', error);
       setError('Failed to submit choice. Continuing...');
 
       setTimeout(() => {
@@ -444,35 +361,24 @@ export default function GameScreen() {
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: 'center', alignItems: 'center' },
-        ]}
-      >
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="black" />
         <Text style={{ marginTop: 20, fontSize: 16 }}>Loading game...</Text>
       </View>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: 'center', alignItems: 'center', padding: 20 },
-        ]}
-      >
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
         <Text style={{ fontSize: 18, marginBottom: 20, textAlign: 'center' }}>
           {error}
         </Text>
-        <TouchableOpacity
-          style={styles.goBackButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.goBackButton} onPress={() => router.back()}>
           <Text style={styles.goBackButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -482,7 +388,7 @@ export default function GameScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        {/* Header - Round and Timer */}
+        {/* Header - Round number and countdown timer */}
         <View style={styles.header}>
           <Text style={styles.roundText}>
             Round {roundState?.round_number || 1}
@@ -490,7 +396,7 @@ export default function GameScreen() {
           <Text style={styles.timerText}>{timeRemaining}s</Text>
         </View>
 
-        {/* Player 1 (User) */}
+        {/* Player 1 (Current User) */}
         <View style={styles.playerSection}>
           <View style={styles.avatar} />
           <View style={styles.playerInfo}>
@@ -517,11 +423,9 @@ export default function GameScreen() {
           </View>
         </View>
 
-        {/* Center Section - Choice Buttons and Pot */}
+        {/* Center Section - Player choices and current pot */}
         <View style={styles.centerSection}>
-          {/* Left side - Choices */}
           <View style={styles.choicesContainer}>
-            {/* Invest Button */}
             <TouchableOpacity
               style={[
                 styles.choiceButton,
@@ -533,7 +437,7 @@ export default function GameScreen() {
               <Text style={styles.choiceButtonText}>Invest</Text>
             </TouchableOpacity>
 
-            {/* Investment Amount Picker */}
+            {/* Investment amount selector */}
             <View style={styles.investmentInputContainer}>
               <Text style={styles.dollarSign}>$</Text>
               <ValuePicker
@@ -542,14 +446,12 @@ export default function GameScreen() {
                 increment={10}
                 initialValue={investmentAmount}
                 onValueSettled={value => {
-                  console.log('💰 Investment amount updated:', value);
                   setInvestmentAmount(value);
-                  investmentAmountRef.current = value; // ADD THIS
+                  investmentAmountRef.current = value;
                 }}
               />
             </View>
 
-            {/* Cash Out Button */}
             <TouchableOpacity
               style={[
                 styles.choiceButton,
@@ -562,7 +464,7 @@ export default function GameScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Right side - Pot */}
+          {/* Current pot display */}
           <View style={styles.potContainer}>
             <Text style={styles.potAmount}>${Math.round(displayPot)}</Text>
           </View>
@@ -598,7 +500,7 @@ export default function GameScreen() {
           </View>
         </View>
 
-        {/* Round Results Modal */}
+        {/* Round Results Modal - Shows after each round */}
         {showRoundResults && roundResults && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -606,7 +508,7 @@ export default function GameScreen() {
                 Round {roundState?.round_number} Results
               </Text>
 
-              {/* Trust Bonus Notice (if both invested) */}
+              {/* Trust bonus notification if both players invested */}
               {roundResults.bothInvested && (
                 <View style={styles.trustBonusNotice}>
                   <Text style={styles.trustBonusText}>
@@ -616,7 +518,7 @@ export default function GameScreen() {
                 </View>
               )}
 
-              {/* User Result */}
+              {/* User result */}
               <View style={styles.resultRow}>
                 <View style={styles.resultPlayerInfo}>
                   <View style={styles.smallAvatar} />
@@ -636,7 +538,7 @@ export default function GameScreen() {
                 </View>
               </View>
 
-              {/* Pot Display */}
+              {/* Pot display with trust bonus breakdown */}
               <View style={styles.modalPotSection}>
                 <Text style={styles.modalPotLabel}>
                   {roundResults.bothInvested
@@ -661,7 +563,7 @@ export default function GameScreen() {
                 )}
               </View>
 
-              {/* Opponent Result */}
+              {/* Opponent result */}
               <View style={styles.resultRow}>
                 <View style={styles.resultPlayerInfo}>
                   <View style={styles.smallAvatar} />
@@ -681,7 +583,7 @@ export default function GameScreen() {
                 </View>
               </View>
 
-              {/* Next Round Info */}
+              {/* Next round or game complete message */}
               {roundResults.nextRoundNumber && (
                 <Text style={styles.nextRoundText}>
                   Proceeding to Round {roundResults.nextRoundNumber}...
@@ -802,14 +704,14 @@ const styles = StyleSheet.create({
   investmentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', // Center the picker
+    justifyContent: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    marginBottom: 15, // Add spacing before Cash Out button
+    marginBottom: 15,
   },
   choiceButtonText: {
     fontSize: 16,
@@ -850,7 +752,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  // Modal styling
   modalOverlay: {
     position: 'absolute',
     top: 0,

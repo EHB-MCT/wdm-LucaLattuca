@@ -1,4 +1,3 @@
-// app/(auth)/onboarding.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -16,7 +15,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-// Generate age options from 13 to 120
+/**
+ * Generates age options from 13 to 120 years old
+ */
 const generateAgeOptions = () => {
   const ages = [];
   for (let i = 13; i <= 120; i++) {
@@ -65,6 +66,10 @@ const NATIONALITY_OPTIONS = [
   { label: 'Other', value: 'Other' },
 ];
 
+/**
+ * OnboardingScreen - Collects user demographic data after registration
+ * Required before accessing main app features
+ */
 export default function OnboardingScreen() {
   const [username, setUsername] = useState('');
   const [age, setAge] = useState('');
@@ -80,7 +85,6 @@ export default function OnboardingScreen() {
     nationality: '',
   });
 
-  // Modal states
   const [showAgePicker, setShowAgePicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [showNationalityPicker, setShowNationalityPicker] = useState(false);
@@ -91,6 +95,9 @@ export default function OnboardingScreen() {
     loadUserData();
   }, []);
 
+  /**
+   * Loads username from stored user data
+   */
   const loadUserData = async () => {
     try {
       const userString = await AsyncStorage.getItem('user');
@@ -103,6 +110,9 @@ export default function OnboardingScreen() {
     }
   };
 
+  /**
+   * Validates all required demographic fields
+   */
   const validateForm = () => {
     let valid = true;
     const newErrors = { age: '', gender: '', nationality: '' };
@@ -126,6 +136,9 @@ export default function OnboardingScreen() {
     return valid;
   };
 
+  /**
+   * Submits onboarding data and navigates to main app
+   */
   const handleCompleteOnboarding = async () => {
     if (!validateForm()) {
       return;
@@ -184,10 +197,7 @@ export default function OnboardingScreen() {
         return;
       }
 
-      // Update stored user data
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
-
-      // Navigate to home screen
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Onboarding error:', error);
@@ -197,6 +207,9 @@ export default function OnboardingScreen() {
     }
   };
 
+  /**
+   * Renders a reusable modal picker for dropdown selections
+   */
   const renderPickerModal = (
     visible: boolean,
     onClose: () => void,
@@ -331,6 +344,7 @@ export default function OnboardingScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Modal pickers for each field */}
       {renderPickerModal(
         showAgePicker,
         () => setShowAgePicker(false),

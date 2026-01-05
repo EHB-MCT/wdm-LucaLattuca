@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-// Types
+// Type definitions for game history data
 type GameHistory = {
   id: number;
   total_rounds: number;
@@ -28,12 +28,15 @@ type PlayerData = {
   net_result: number;
 };
 
-// Dynamic component styling props
 type HistoryScroll = {
   scrollEnabled?: boolean;
   containerStyle?: ViewStyle;
 };
 
+/**
+ * History component - Displays user's game history with results
+ * Can be embedded in other screens with custom scroll and style props
+ */
 export default function History({
   scrollEnabled = true,
   containerStyle,
@@ -46,6 +49,9 @@ export default function History({
     fetchGameHistory();
   }, []);
 
+  /**
+   * Fetches user's game history from API
+   */
   const fetchGameHistory = async () => {
     try {
       setLoading(true);
@@ -81,32 +87,29 @@ export default function History({
     }
   };
 
-  // Helper function to get background color based on choice
+  // Helper functions for styling game results
   const getBackgroundColor = (choice: 'invest' | 'cash_out'): string => {
-    return choice === 'invest' ? '#ffffffff' : '#edededff'; // green for invest, red for cash out
+    return choice === 'invest' ? '#ffffffff' : '#edededff';
   };
 
-  // Helper function to get choice text color
   const getChoiceTextColor = (choice: 'invest' | 'cash_out'): string => {
-    return choice === 'invest' ? '#22C55E' : '#EF4444'; // green for invest, red for cash out
+    return choice === 'invest' ? '#22C55E' : '#EF4444';
   };
 
-  // Helper function to get net result color
   const getNetResultColor = (netResult: number): string => {
-    return netResult >= 0 ? '#22C55E' : '#EF4444'; // green for profit, red for loss
+    return netResult >= 0 ? '#22C55E' : '#EF4444';
   };
 
-  // Helper function to format earnings
   const formatEarnings = (netResult: number): string => {
     const sign = netResult >= 0 ? '+' : '';
     return `${sign} $${netResult}`;
   };
 
-  // Helper function to get choice text
   const getChoiceText = (choice: 'invest' | 'cash_out'): string => {
     return choice === 'invest' ? 'Invested' : 'Cashed Out';
   };
 
+  // Loading state
   if (loading) {
     return (
       <View style={[styles.history, containerStyle]}>
@@ -120,6 +123,7 @@ export default function History({
     );
   }
 
+  // Error state
   if (error) {
     return (
       <View style={[styles.history, containerStyle]}>
@@ -129,6 +133,7 @@ export default function History({
     );
   }
 
+  // Empty state
   if (games.length === 0) {
     return (
       <View style={[styles.history, containerStyle]}>
@@ -148,6 +153,7 @@ export default function History({
         keyExtractor={game => game.id.toString()}
         renderItem={({ item }) => (
           <>
+            {/* Divider between games */}
             <View
               style={{
                 height: 1,
@@ -156,6 +162,8 @@ export default function History({
                 marginVertical: 10,
               }}
             />
+            
+            {/* Player names */}
             <View style={styles.playerInfo}>
               <Text style={styles.player}>
                 {item.player1.name}
@@ -167,8 +175,11 @@ export default function History({
                 {item.player2.is_bot && ' (Bot)'}
               </Text>
             </View>
+
+            {/* Game results card */}
             <View style={styles.match}>
               <View style={styles.matchContent}>
+                {/* Player 1 result */}
                 <View
                   style={[
                     styles.playerResult,
@@ -193,6 +204,8 @@ export default function History({
                     {formatEarnings(item.player1.net_result)}
                   </Text>
                 </View>
+
+                {/* Player 2 result */}
                 <View
                   style={[
                     styles.playerResult,
@@ -219,6 +232,7 @@ export default function History({
                 </View>
               </View>
             </View>
+            
             <Text style={styles.rounds}>Rounds: {item.total_rounds}</Text>
           </>
         )}
@@ -298,6 +312,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
+
 // Sources
 // FlatList: https://chatgpt.com/share/694d9388-8240-800a-bff4-f83cfb9a45a1
 // fetching history data:  https://claude.ai/share/7505ce54-ca95-413e-8aba-ab94e2c4d97a
