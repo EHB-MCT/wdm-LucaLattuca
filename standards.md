@@ -45,7 +45,7 @@ There is no single convention for React Native, therefore all refer to conventio
 
 7. Styling
 
-- No inline styling -> use stylesheet.create()
+- Try to prevent inline styling -> use stylesheet.create()
 
 8. Consistency
 
@@ -53,27 +53,34 @@ There is no single convention for React Native, therefore all refer to conventio
 
 9.  folder structure
 
-- src: This folder is the main container of all the code inside your application.
-
-- components: Folder to store any common component that you use through your app (such as a generic button)
-
-- screens: Folder that contains all your application screens/features.
-
-- navigations: Folder to store the navigators.
-
-- services: Folder to store all common services used in application.
-
-- utils: Folder to store any common function such as calculate radius, different date - - formatting functions and constants.
-
-- types: Folder to store all enum and interface used in application.
-
-- redux: Folder to store action , reducer and redux store.
-
-- App.js: Main component that starts your whole app.
-
-- index.js: Entry point of your application as per React-Native standards.
-
-- assets: Asset folder to store all images, vectors, fonts, etc.
+project-root/
+├── backend/ # Laravel application
+│ ├── app/  
+│ └── Console/commands # game and user simulators
+│ └── HTTP/Controllers # controllers
+│ └── Models # contains all models
+│ └── Services # contains all Services
+│ ├── config/
+│ ├── database/
+│ ├── public/
+│ ├── composer.json
+│ ├── artisan
+│ ├── .env
+│ └── Dockerfile
+├── frontend/ # React Native Expo application
+│ ├── app/ # contains all screens, tabs, game logic
+│ ├── assets/ # contains assets used in the application
+│ ├── components/ # all standalone components are placed in this folder
+│ ├── contexts/ # context files
+│ ├── config/ # configuration files
+│ │ └── api.js
+│ ├── package.json
+│ └── app.json
+├── docker/
+│ └── nginx/
+│ └── nginx.conf
+├── docker-compose.yml
+└── README.md
 
 ##Sources
 

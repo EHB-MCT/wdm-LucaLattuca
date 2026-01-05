@@ -423,3 +423,9 @@ If you encounter issues:
 ---
 
 # Sources
+
+Claude (sonnet 4.5) has been used throughout the development of this project for models, controllers, game simulators, creating the trust game... All chat links can be found at the **bottom** of the files.
+
+While AI provided the code, all project architecture, system design, and integration decisions were reviewed
+and implemented by me.
+This approach allowed for faster prototyping while maintaining full control over the application's structure and behavior.
