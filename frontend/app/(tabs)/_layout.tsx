@@ -63,6 +63,19 @@ export default function TabsLayout() {
             ),
         }}
       />
+
+      <Tabs.Screen name="data"
+      options={{
+          headerTitle: "Data",
+          title: "Data",
+          tabBarIcon: ({ color, size }) => (
+            <Image
+                source={require("../../assets/images/tab-icons/data-tab-icon.png")}
+                style={{ width: size, height: size, tintColor: color }}
+            />
+            ),
+        }}
+      />
         <Tabs.Screen name="profile"
         options={{
           headerTitle: "Profile",
